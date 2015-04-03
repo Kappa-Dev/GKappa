@@ -78,8 +78,8 @@ module type GKappa =
     val add_internal_state_type: site_type -> string -> directive list -> remanent_state -> internal_state_type * remanent_state 
 
     val add_in_graph: remanent_state -> graph -> remanent_state * graph_vars 
-    val add_agent: agent_type -> float -> float -> directive list -> remanent_state -> agent * remanent_state 
-    val add_site: agent -> site_type  -> directive list -> remanent_state -> site * remanent_state 
+    val add_agent: agent_type -> float -> float -> directive list -> remanent_state -> agent option * remanent_state 
+    val add_site: agent -> site_type  -> directive list -> remanent_state -> site option * remanent_state 
     val add_internal_state: site -> internal_state_type -> directive list -> remanent_state -> state * remanent_state 
     val add_free: site -> directive list -> remanent_state -> state * remanent_state 
     val add_bound: site -> directive list -> remanent_state -> state * remanent_state 
@@ -164,12 +164,12 @@ module GKappa =
     let init_id = 0 
     let succ x = x+1 
 
-    module TagMap = Map.Make (struct type t = tag let compare = compare end)
+    module TagMap = Data_structures.Make (struct type t = tag let compare = compare end)
     module IntSet = Set.Make (struct type t = int let compare = compare end)
     module IdMap = Data_structures.Make (struct type t = id let compare = compare end)
     module Id2Map = Data_structures.Make (struct type t = id * id let compare = compare end)
-    module StringMap = Map.Make (struct type t = string let compare = compare end)
-    module String2Map = Map.Make (struct type t = string * string let compare = compare end) 
+    module StringMap = Data_structures.Make (struct type t = string let compare = compare end)
+    module String2Map = Data_structures.Make (struct type t = string * string let compare = compare end) 
 
     type config = 
       { 
@@ -280,7 +280,7 @@ module GKappa =
     type sig_site = 
       { 
 	sig_site_node: node ;
-	sig_site_states: sig_state IdMap.map ; 
+	sig_site_states: sig_state IdMap.t ; 
 	sig_site_n_states: int ;  
 	sig_site_direction: float ;
 	sig_site_scale_factor: float ;
@@ -288,7 +288,7 @@ module GKappa =
 	
     let init_sig_site = 
       { sig_site_node = dummy_sig_site_node ;
-	sig_site_states = IdMap.empty_map ; 
+	sig_site_states = IdMap.empty ; 
 	sig_site_n_states = 0; 
 	sig_site_direction = 0.; 
 	sig_site_scale_factor = 1.05}
@@ -296,13 +296,13 @@ module GKappa =
     type sig_agent = 
       { 
 	sig_agent_node: node;
-	sig_agent_sites: sig_site IdMap.map ; 
+	sig_agent_sites: sig_site IdMap.t ; 
 	sig_agent_n_sites: int 
       }
 	
     let init_sig_agent = 
       { sig_agent_node = dummy_sig_agent_node;
-	sig_agent_sites = IdMap.empty_map; 
+	sig_agent_sites = IdMap.empty; 
 	sig_agent_n_sites = 0}
 	
     type 'a kind = Agent of 'a | Site of 'a | State of 'a 
@@ -374,7 +374,7 @@ module GKappa =
     type site_node = 
       { 
 	site_node: node;
-	site_states: state_node IdMap.map ;
+	site_states: state_node IdMap.t ;
 	site_direction: float ;
       }
 	
@@ -382,19 +382,19 @@ module GKappa =
       { 
 	agent_type: agent_type ;
 	agent_node: node ;
-	agent_sites: site_node IdMap.map
+	agent_sites: site_node IdMap.t
       }
 	
     let dummy_agent = 
       { 
 	agent_type = 0 ;
 	agent_node = dummy_sig_agent_node ;
-	agent_sites = IdMap.empty_map
+	agent_sites = IdMap.empty
       }
     let dummy_site = 
       {
 	site_node= dummy_sig_site_node; 
-	site_states= IdMap.empty_map;
+	site_states= IdMap.empty;
 	site_direction = 0.;
       }
 	
@@ -403,11 +403,11 @@ module GKappa =
     type remanent_state = 
       {
 	config: config ;
-	nodes: node IdMap.map;
+	nodes: node IdMap.t;
 	nnodes: id;
-	agent_types: sig_agent IdMap.map ;
-	agents: agent_node IdMap.map ;
-	edge_list: edge list Id2Map.map ;
+	agent_types: sig_agent IdMap.t ;
+	agents: agent_node IdMap.t ;
+	edge_list: edge list Id2Map.t ;
       }
 	
 	
@@ -438,11 +438,11 @@ module GKappa =
     let init config = 
       { 
 	config = config ;
-	nodes = IdMap.empty_map ;
+	nodes = IdMap.empty ;
 	nnodes = init_id;
-	agent_types = IdMap.empty_map ; 
-	agents = IdMap.empty_map ;
-	edge_list = Id2Map.empty_map ;
+	agent_types = IdMap.empty ; 
+	agents = IdMap.empty ;
+	edge_list = Id2Map.empty ;
       }
 	
     let n_modulo list n = 
@@ -536,26 +536,31 @@ module GKappa =
       let node = parse_attributes attributes node in 
       agent_id,
       {remanent with 
-	agent_types  = snd (IdMap.add_map () () agent_id {agent_sig with sig_agent_node = node}  remanent.agent_types)}
+	agent_types  = IdMap.add agent_id {agent_sig with sig_agent_node = node}  remanent.agent_types}
 	
     let add_site_type agent_id name attributes (remanent:remanent_state) = 
-      let agent_type = snd (IdMap.find_map () ()  agent_id remanent.agent_types) in 
-      let site_id = agent_type.sig_agent_n_sites + 1 in 
-      let agent_type = { agent_type with sig_agent_n_sites = site_id} in 
-      let color = n_modulo (remanent.config.site_colors) site_id in 
-      let angle = angle_of_index site_id in 
-      let site_sig = 
-	{ init_sig_site 
+      match IdMap.find_option agent_id remanent.agent_types
+      with 
+      | None -> 
+	let _ = Printf.fprintf stderr "ERROR: in add_site_type, try to add a site to an unknown agent type\n" 
+	in (-1,-1),remanent
+      | Some agent_type -> 
+	let site_id = agent_type.sig_agent_n_sites + 1 in 
+	let agent_type = { agent_type with sig_agent_n_sites = site_id} in 
+	let color = n_modulo (remanent.config.site_colors) site_id in 
+	let angle = angle_of_index site_id in 
+	let site_sig = 
+	  { init_sig_site 
 	  with 
 	    sig_site_node = 
-	    { init_sig_site.sig_site_node with fillcolor = color ; label = name};
+	      { init_sig_site.sig_site_node with fillcolor = color ; label = name};
 	    sig_site_direction = angle }
-      in 
-      let rec parse_attributes att site_sig =
-	match 
-	  att
-	with 
-	| [] -> site_sig 
+	in 
+	let rec parse_attributes att site_sig =
+	  match 
+	    att
+	  with 
+	  | [] -> site_sig 
 	| t::q -> 
 	  parse_attributes q 
 	    begin
@@ -567,8 +572,8 @@ module GKappa =
 	      | Color s -> {site_sig with sig_site_node = {site_sig.sig_site_node with color = s}}
 	      | Fontsize i -> {site_sig with sig_site_node = {site_sig.sig_site_node with fontsize = i}}
 	      | Tag (_,_) -> let _ = 
-				Printf.fprintf stderr "Warning: Tags are useless in site types declaration\n" 
-			      in site_sig
+			       Printf.fprintf stderr "Warning: Tags are useless in site types declaration\n" 
+			     in site_sig
 	      | Width f -> {site_sig with sig_site_node = {site_sig.sig_site_node with width = f}}
 	      | Height f -> {site_sig with sig_site_node = {site_sig.sig_site_node with height = f}}
 	      | Direction f -> 
@@ -581,75 +586,94 @@ module GKappa =
 	    end
       in 
       let site_sig = parse_attributes attributes site_sig in 
-      let agent_type = 
+      let sig_agent_sites = 
+	 IdMap.add site_id site_sig agent_type.sig_agent_sites 
+      in 
+      let agent_type =  
 	{agent_type 
 	 with 
-	   sig_agent_sites = 
-	    snd (IdMap.add_map () ()  site_id site_sig agent_type.sig_agent_sites)}
+	   sig_agent_sites = IdMap.add site_id site_sig agent_type.sig_agent_sites}
+      in 
+      let remanent = 
+	  {remanent with 
+	agent_types = IdMap.add  agent_id agent_type remanent.agent_types}
       in 
       (agent_id,site_id),
       {remanent with 
-	agent_types = snd (IdMap.add_map () ()  agent_id agent_type remanent.agent_types)}
+	agent_types = IdMap.add  agent_id agent_type remanent.agent_types}
 	
     let add_internal_state_type  (agent_id,site_id) state attributes remanent = 
-      let agent_type = snd (IdMap.find_map () ()  agent_id remanent.agent_types) in 
-      let site = snd (IdMap.find_map () ()  site_id agent_type.sig_agent_sites) in 
-      let state_id = site.sig_site_n_states +1 in 
-      let site = { site with sig_site_n_states = state_id} in 
-      let state_sig = 
-	{ init_sig_state with 
-	  sig_state_node = 
+       match IdMap.find_option agent_id remanent.agent_types
+      with 
+      | None -> 
+	let _ = Printf.fprintf stderr "ERROR1: in add_internal_state_type, try to add a state to an unknown agent type\n" 
+	in (-1,-1,-1),remanent
+      | Some agent_type -> 
+	begin
+	  match IdMap.find_option site_id agent_type.sig_agent_sites 
+	  with 
+	  | None -> 
+	    let _ = Printf.fprintf stderr "ERROR: in add_internal_state_type, try to add a state to an unknown site type\n
+agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agent_n_sites)
+	    in (-1,-1,-1),remanent
+	  | Some site ->  
+	    let state_id = site.sig_site_n_states +1 in 
+	    let site = { site with sig_site_n_states = state_id} in 
+	    let state_sig = 
+	      { init_sig_state with 
+		sig_state_node = 
 	    {init_sig_state.sig_state_node with fillcolor = 
 		n_modulo 
 		  (remanent.config.state_colors) 
 		  state_id}  ;
-	  sig_state_direction = angle_of_index state_id }
-      in 
-      let rec parse_attributes att state_sig =
-	match 
-	  att
-	with 
-	| [] -> state_sig 
-	| t::q -> 
-	  parse_attributes q 
-	    begin
+		sig_state_direction = angle_of_index state_id }
+	    in 
+	    let rec parse_attributes att state_sig =
 	      match 
-		t 
+		att
 	      with 
-	      | Comment _ -> state_sig 
-	      | FillColor s -> {state_sig with sig_state_node = {state_sig.sig_state_node with fillcolor = s}}
-	      | Color s -> {state_sig with sig_state_node = {state_sig.sig_state_node with color = s}}
-	      | Fontsize i -> {state_sig with sig_state_node = {state_sig.sig_state_node with fontsize = i}}
-	      | Tag (_,_) -> let _ = 
-				Printf.fprintf stderr "Warning: Tags are useless in states declaration\n" 
-			      in state_sig
-	      | Width f -> {state_sig with sig_state_node = {state_sig.sig_state_node with width = f}}
-	      | Height f -> {state_sig with sig_state_node = {state_sig.sig_state_node  with height = f}}
-	      | Direction f -> 
-	        {state_sig with sig_state_direction = f}
-	      | Shape s -> {state_sig with sig_state_node = {state_sig.sig_state_node with shape = s}}
-	      | Radius f -> parse_attributes [Width f;Height f] state_sig
-	      | Set_scale f -> 
-		{ state_sig with sig_state_scale_factor = f}
-	      | Scale f -> parse_attributes [Set_scale (f*.state_sig.sig_state_scale_factor)] state_sig 
-	    end
-      in 
-      let state_sig = parse_attributes attributes state_sig in 
-      let site = 
-	{ site 
-	  with 
-	    sig_site_states = 
-	    snd (IdMap.add_map () () state_id state_sig site.sig_site_states)}
-      in 
-      let agent_type = 
-	{agent_type 
-	 with 
-	   sig_agent_sites = snd (IdMap.add_map () ()  site_id site agent_type.sig_agent_sites)}
-      in 
-      (agent_id,site_id,state_id),
-      {remanent with 
-	agent_types = snd (IdMap.add_map () ()  agent_id agent_type remanent.agent_types)}
-	
+	      | [] -> state_sig 
+	      | t::q -> 
+		parse_attributes q 
+		  begin
+		    match 
+		      t 
+		    with 
+		    | Comment _ -> state_sig 
+		    | FillColor s -> {state_sig with sig_state_node = {state_sig.sig_state_node with fillcolor = s}}
+		    | Color s -> {state_sig with sig_state_node = {state_sig.sig_state_node with color = s}}
+		    | Fontsize i -> {state_sig with sig_state_node = {state_sig.sig_state_node with fontsize = i}}
+		    | Tag (_,_) -> let _ = 
+				     Printf.fprintf stderr "Warning: Tags are useless in states declaration\n" 
+				   in state_sig
+		    | Width f -> {state_sig with sig_state_node = {state_sig.sig_state_node with width = f}}
+		    | Height f -> {state_sig with sig_state_node = {state_sig.sig_state_node  with height = f}}
+		    | Direction f -> 
+	              {state_sig with sig_state_direction = f}
+		    | Shape s -> {state_sig with sig_state_node = {state_sig.sig_state_node with shape = s}}
+		    | Radius f -> parse_attributes [Width f;Height f] state_sig
+		    | Set_scale f -> 
+		      { state_sig with sig_state_scale_factor = f}
+		    | Scale f -> parse_attributes [Set_scale (f*.state_sig.sig_state_scale_factor)] state_sig 
+		  end
+	    in 
+	    let state_sig = parse_attributes attributes state_sig in 
+	    let site = 
+	      { site 
+		with 
+		  sig_site_states = 
+		  IdMap.add state_id state_sig site.sig_site_states}
+	    in 
+	    let agent_type = 
+	      {agent_type 
+	       with 
+		 sig_agent_sites = IdMap.add  site_id site agent_type.sig_agent_sites}
+	    in 
+	    (agent_id,site_id,state_id),
+	    {remanent with 
+	      agent_types = IdMap.add  agent_id agent_type remanent.agent_types}
+	end
+    
     let name_of_agent agent_id node = 
       "Agent_"^(node.label)^"_"^(string_of_int agent_id)
 	
@@ -676,33 +700,36 @@ module GKappa =
 	
     let add_tag s i map = 
       let old = 
-	try 
-	  TagMap.find s map 
+	match 
+	  TagMap.find_option s map 
 	with 
-	  Not_found -> IntSet.empty
-      in TagMap.add s (IntSet.add i old) map 
+	| None -> IntSet.empty
+	| Some a -> a
+      in 
+      TagMap.add s (IntSet.add i old) map 
       
     let add_agent agent_type abs ord attributes remanent = 
-      let agent_type_info = 
-	try 
-	  snd (IdMap.find_map () () agent_type remanent.agent_types )
-	with 
-	  Not_found -> (Printf.fprintf stdout "631\n";raise Exit)
-      in 
-      let node_id =  remanent.nnodes + 1 in 
-      let remanent = {remanent with nnodes = node_id} in 
-      let node = 
-	{ 
-	  agent_type_info.sig_agent_node 
+      match  
+	IdMap.find_option agent_type remanent.agent_types 
+      with 
+      | None -> 
+	let _ = Printf.fprintf stderr "ERROR: in add_agent, the agent_type is not defined in the signature \n"
+	in None,remanent
+      | Some agent_type_info -> 
+	let node_id =  remanent.nnodes + 1 in 
+	let remanent = {remanent with nnodes = node_id} in 
+	let node = 
+	    { 
+	      agent_type_info.sig_agent_node 
+	      with 
+		abscisse = abs ; 
+		ordinate = ord ; 
+	    }
+	in 
+	let rec parse_attributes att node =
+	  match 
+	    att
 	  with 
-	    abscisse = abs ; 
-	    ordinate = ord ; 
-	}
-      in 
-      let rec parse_attributes att node =
-	match 
-	  att
-	with 
 	| [] -> node 
 	| t::q -> 
 	  parse_attributes q 
@@ -724,124 +751,123 @@ module GKappa =
 	      | Shape s -> {node with shape = s}
 	      | Radius f -> parse_attributes [Width f;Height f] node 
 	    end
-      in 
-      let node = parse_attributes attributes node in 
-      let node = { node with name = name_of_agent node_id node} in 
-      let _ = Printf.fprintf stdout "%s" node.name in 
-      let agent = {dummy_agent with 
-	agent_type = agent_type ;
-	agent_node = node } in 
-      (node_id,agent_type),
-      {remanent with 
-	agents  = snd (IdMap.add_map () () node_id agent remanent.agents) ; 
-	nodes = snd (IdMap.add_map () () node_id node remanent.nodes) 
-      }
-	
+	in 
+	let node = parse_attributes attributes node in 
+	let node = { node with name = name_of_agent node_id node} in 
+	let agent = {dummy_agent with 
+	    agent_type = agent_type ;
+	  agent_node = node } in 
+	Some (node_id,agent_type),
+	{remanent with 
+	  agents  = IdMap.add node_id agent remanent.agents ; 
+	  nodes = IdMap.add node_id node remanent.nodes
+	}
+	  
     let add_site (agent_id,agent_type) site_type attributes remanent = 
       let agent_type_id = fst site_type in 
-      let _ = 
-	if agent_type_id <> agent_type 
-	then (Printf.fprintf stdout "683\n";raise Exit)
-      in 
-      let agent_type = 
-	try 
-	  snd (IdMap.find_map () ()  agent_type_id remanent.agent_types)
+      if agent_type_id <> agent_type 
+      then 
+	let _ = Printf.fprintf stderr "ERROR: in add_site, the site does not belong the the interface of the agent.\n"
+	in None,remanent
+      else 
+	match  
+	  IdMap.find_option agent_type_id remanent.agent_types,
+	  IdMap.find_option agent_id remanent.agents 
 	with 
-	| Not_found -> (Printf.fprintf stdout "689\n";raise Exit)
-      in 
-      let agent = 
-	try 
-	  snd(IdMap.find_map () () agent_id remanent.agents)
-	with Not_found -> (Printf.fprintf stdout "694\n";raise Exit)
-      in 
-      let site_type_info = 
-	try 
-	  snd (IdMap.find_map () ()  (snd site_type) agent_type.sig_agent_sites)
-	with Not_found -> (Printf.fprintf stdout "699\n";raise Exit)
-      in 
-      let node = 
-	{ site_type_info.sig_site_node with tags = agent.agent_node.tags} 
-      in 
-      let direction = site_type_info.sig_site_direction in 
-      let scale = site_type_info.sig_site_scale_factor in 
-      let node_id = remanent.nnodes+1 in 
-      let remanent = {remanent with nnodes = node_id} in 
-      let rec parse_attributes att (node,direction,scale) =
-	match 
-	  att
-	with 
-	| [] -> node,direction,scale
-	| t::q -> 
-	  parse_attributes q 
-	    begin
-	      match 
-		t 
+	| None,_ | None,_ -> 
+	    let _ = Printf.fprintf stderr "ERROR: in add_site, the agent does not belong to the graph.\n "
+	    in None,remanent
+	| Some agent_type,Some agent -> 
+	  begin 
+	    match IdMap.find_option  (snd site_type) agent_type.sig_agent_sites 
+	    with 
+	    | None ->  let _ = Printf.fprintf stderr "ERROR: in add_site, the site  does not belong to the signature.\n " in 
+		       None,remanent
+	    | Some site_type_info -> 
+	      let node = 
+		{ site_type_info.sig_site_node with tags = agent.agent_node.tags} 
+	      in 
+	      let direction = site_type_info.sig_site_direction in 
+	      let scale = site_type_info.sig_site_scale_factor in 
+	      let node_id = remanent.nnodes+1 in 
+	      let remanent = {remanent with nnodes = node_id} in 
+	      let rec parse_attributes att (node,direction,scale) =
+		match 
+		  att
 	      with 
-	      | Comment _ -> node,direction,scale  
-	      | FillColor s -> {node with fillcolor = s},direction,scale
-	      | Color s -> {node with color = s},direction,scale
-	      | Fontsize i -> {node with fontsize = i},direction,scale
-	      | Tag (s,i) -> {node with tags = add_tag s i  node.tags},direction,scale
-	      | Width f -> {node with width = f},direction,scale
-	      | Height f -> {node with height = f},direction,scale
-	      | Direction f -> node,f,scale
-	      | Shape s -> {node with shape = s},direction,scale
-	      | Radius f -> parse_attributes [Width f;Height f] (node,direction,scale)
-	      | Set_scale f -> node,direction,f
-	      | Scale f -> parse_attributes [Set_scale (f*.scale)] (node,direction,scale)
-	    end
-      in 
-      let node,direction,scale = parse_attributes attributes (node,direction,scale) in 
-      let abs,ord = point_on_countour remanent agent.agent_node direction scale in 
-      let node = 
-	{ 
-	  node with
-	    abscisse = abs ; 
-	    ordinate = ord ; 
-	}
-      in 
-      let node = { node with name = name_of_site agent_id agent.agent_node node_id node} in
-      let site = {dummy_site with site_node = node ; site_direction = direction} in 
-      let agent = {agent with agent_sites = snd (IdMap.add_map () ()  node_id site agent.agent_sites)} in 
-      (agent_id,agent_type_id,node_id,site_type),
-      {remanent with 
-	agents  = snd (IdMap.add_map () ()  agent_id agent remanent.agents)}
-	
-	
+	      | [] -> node,direction,scale
+	      | t::q -> 
+		parse_attributes q 
+		  begin
+		    match 
+		      t 
+		    with 
+		    | Comment _ -> node,direction,scale  
+		    | FillColor s -> {node with fillcolor = s},direction,scale
+		    | Color s -> {node with color = s},direction,scale
+		    | Fontsize i -> {node with fontsize = i},direction,scale
+		    | Tag (s,i) -> {node with tags = add_tag s i  node.tags},direction,scale
+		    | Width f -> {node with width = f},direction,scale
+		    | Height f -> {node with height = f},direction,scale
+		    | Direction f -> node,f,scale
+		    | Shape s -> {node with shape = s},direction,scale
+		    | Radius f -> parse_attributes [Width f;Height f] (node,direction,scale)
+		    | Set_scale f -> node,direction,f
+		    | Scale f -> parse_attributes [Set_scale (f*.scale)] (node,direction,scale)
+		  end
+	      in 
+	      let node,direction,scale = parse_attributes attributes (node,direction,scale) in 
+	      let abs,ord = point_on_countour remanent agent.agent_node direction scale in 
+	      let node = 
+		{ 
+		  node with
+		    abscisse = abs ; 
+		    ordinate = ord ; 
+	      }
+	      in 
+	      let node = { node with name = name_of_site agent_id agent.agent_node node_id node} in
+	      let site = {dummy_site with site_node = node ; site_direction = direction} in 
+	      let agent = {agent with agent_sites = IdMap.add  node_id site agent.agent_sites} in 
+	      Some (agent_id,agent_type_id,node_id,site_type),
+	    {remanent with 
+	      agents  = IdMap.add  agent_id agent remanent.agents}
+	  end 
+	    
     let get_site_info  (agent_id,agent_type_id,site_id,site_type_id) remanent = 
-      let agent_type = 
-	try 
-	  snd (IdMap.find_map () ()  agent_type_id remanent.agent_types)
+      let f a b df s s'= 
+	match 
+	  IdMap.find_option a b 
 	with 
-	| Not_found -> (Printf.fprintf stdout "754\n";raise Exit)
+	| None -> 
+	  let _ = Printf.fprintf stderr "ERROR: In get_site_info, this %s doet not belong to the %s.\n" s s'
+	  in df
+	| Some a -> a
+      in 
+      let agent_type = 
+	f agent_type_id remanent.agent_types init_sig_agent "agent type" "signature"
       in 
       let site_type = 
-	try 
-	  snd (IdMap.find_map () () (snd site_type_id)  agent_type.sig_agent_sites)
-	with 
-	| Not_found -> (Printf.fprintf stdout "760\n";raise Exit)
+	f (snd site_type_id) agent_type.sig_agent_sites init_sig_site (*(-1,-1)*) "site type" "signature"
       in 
       let agent = 
-	try 
-	  snd (IdMap.find_map () () agent_id remanent.agents)
-	with Not_found -> (Printf.fprintf stdout "765\n";raise Exit )
+	f agent_id remanent.agents dummy_agent "agent" "graph"
       in 
-      let site = 
-	try 
-	  snd (IdMap.find_map () () site_id agent.agent_sites)
-	with Not_found -> (Printf.fprintf stdout "770\n";raise Exit)
-      in 
-      agent_type,site_type,agent,site 
-	
+      agent_type,site_type,agent,
+      (f site_id agent.agent_sites dummy_site "site" "graph")
+
     let add_internal_state (agent_id,agent_type_id,site_id,site_type_id) state_type attributes remanent = 
       let agent_type,site_type,agent,site = 
 	get_site_info (agent_id,agent_type_id,site_id,site_type_id) remanent 
       in 
       let (_,_,state_type_id) = state_type in 
       let state_type_info = 
-	try 
-	  snd (IdMap.find_map () ()  state_type_id site_type.sig_site_states)
-	with Not_found -> (Printf.fprintf stdout "782\n";raise Exit)
+	match 
+	  IdMap.find_option state_type_id site_type.sig_site_states
+	with 
+	  None -> 
+	    let _ = Printf.fprintf stderr "ERROR: in add_internal_states, the state type does not belong to the signature\n" in  
+	    init_sig_state
+	| Some state_type_info -> state_type_info
       in 
       let node = {state_type_info.sig_state_node with tags = site.site_node.tags } in 
       let direction = state_type_info.sig_state_direction in 
@@ -882,12 +908,12 @@ module GKappa =
 	    ordinate = ord ; 
 	}
       in 
-      let site = {site with site_states = snd (IdMap.add_map () ()  node_id (Internal_node node) site.site_states)} in 
-      let agent = {agent with agent_sites = snd (IdMap.add_map () ()  site_id site agent.agent_sites)} in 
+      let site = {site with site_states = IdMap.add  node_id (Internal_node node) site.site_states} in 
+      let agent = {agent with agent_sites = IdMap.add  site_id site agent.agent_sites} in 
       (agent_id,site_id,node_id),
       {remanent with 
-	agents  = snd (IdMap.add_map () ()  agent_id agent remanent.agents);
-	nodes = snd (IdMap.add_map () ()  node_id node remanent.nodes)}
+	agents  = IdMap.add  agent_id agent remanent.agents;
+	nodes = IdMap.add  node_id node remanent.nodes}
 	
     let op edge = {edge with 
       node1 = edge.node2 ;
@@ -919,11 +945,11 @@ module GKappa =
 	    begin 
 	      let old = 
 		match  
-		  snd (Id2Map.find_map_option  () ()  (n1,n2) remanent.edge_list) 
+		  Id2Map.find_option   (n1,n2) remanent.edge_list
 		with Some a -> a 
 		| None -> []
 	      in 
-	      snd (Id2Map.add_map () ()  (n1,n2) (edge::old) remanent.edge_list)
+	      Id2Map.add  (n1,n2) (edge::old) remanent.edge_list
 	    end}
            
     let add_relation relation (*(agent_id,agent_type_id,site_id,(site_type_id:int*int))*) node1 node2
@@ -940,20 +966,34 @@ module GKappa =
       add_link site_id site_id' relation  remanent 
 	
     let add_match_elt (ag_id1,_) (ag_id2,_) remanent = 
-      let node1 = snd(IdMap.find_map () () ag_id1 remanent.agents)  in 
-      let node2 = snd(IdMap.find_map () () ag_id2 remanent.agents) in 
-      add_link ag_id1 ag_id2 
-	{dummy_match with node1 = node1.agent_node ; 
-	  node2 = node2.agent_node} remanent 
+      let node1 = IdMap.find_option ag_id1 remanent.agents  in 
+      let node2 = IdMap.find_option  ag_id2 remanent.agents in 
+      match 
+	node1,node2
+      with 
+	Some node1,Some node2 -> 
+	  add_link ag_id1 ag_id2 
+	    {dummy_match with node1 = node1.agent_node ; 
+	      node2 = node2.agent_node} remanent 
+      | _,_ -> 
+	let _ = Printf.fprintf stderr "ERROR: in add match elt, at least one of the sites do not belong to the graph.\n" 
+	in remanent
 	
 
     let add_proj_elt (ag1,_) (ag2,_) remanent = 
-      let node1 = snd(IdMap.find_map () () ag1 remanent.agents)  in 
-      let node2 = snd(IdMap.find_map () () ag2 remanent.agents) in 
-      add_link ag1 ag2 
-	{dummy_proj with node1 = node1.agent_node ; 
-	  node2 = node2.agent_node} remanent 
-
+      let node1 = IdMap.find_option ag1 remanent.agents  in 
+      let node2 = IdMap.find_option ag2 remanent.agents in 
+      match 
+	node1,node2
+      with 
+      | None,_ | _,None -> 
+	let _ = Printf.fprintf stderr "ERROR: in projection, some agents do not belong to the graph" in 
+	remanent 
+      | Some node1,Some node2 -> 
+	add_link ag1 ag2 
+	  {dummy_proj with node1 = node1.agent_node ; 
+	    node2 = node2.agent_node} remanent 
+	  
 
     let add_edge = add_relation link 
     let add_weak_flow_and_link  x y z = add_relation weak_flow x y (add_edge x y z)
@@ -1012,18 +1052,26 @@ module GKappa =
       let abs3,ord3 = point_on_countour_ext remanent node1 (direction-.90.) 1. (width/.2.)   in 
       let node2 = {dummy_node with color = "white" ; (*id = node_id2 ;*) abscisse = abs2 ; ordinate = ord2 ; tags = tags} in 
       let node3 = {dummy_node with color = "white" ; (*id = node_id3 ;*) abscisse = abs3 ; ordinate = ord3 ; tags = tags } in 
-      let site = {site with site_states = 
-	  snd (IdMap.add_map () ()  node_id1 (Free_nodes (node1,node2,node3)) site.site_states)}
+      let site = 
+	{site 
+	 with 
+	   site_states = 
+	    IdMap.add  node_id1 (Free_nodes (node1,node2,node3)) site.site_states}
       in 
-      let agent = {agent with agent_sites = 
-	  snd (IdMap.add_map () ()  site_id site agent.agent_sites)} in 
+      let agent = 
+	{agent 
+	 with 
+	   agent_sites = 
+	    IdMap.add  site_id site agent.agent_sites} 
+      in 
       (agent_id,site_id,node_id1),
-      {remanent with 
-	agents  = snd (IdMap.add_map () ()  agent_id agent remanent.agents);
-	nodes = 
-	  snd (IdMap.add_map () ()  node_id1 node1 
-	    (snd (IdMap.add_map () ()  node_id2 node2 
-	       (snd (IdMap.add_map () ()  node_id3 node3 remanent.nodes)))))}
+      {remanent 
+       with 
+	 agents  = IdMap.add  agent_id agent remanent.agents;
+	 nodes = 
+	  IdMap.add  node_id1 node1 
+		 (IdMap.add  node_id2 node2 
+			 (IdMap.add  node_id3 node3 remanent.nodes))}
 	
 	
     let add_bound  (agent_id,agent_type_id,site_id,site_type_id) attributes remanent = 
@@ -1062,15 +1110,23 @@ module GKappa =
       let color,tags,direction,height = parse_attributes attributes ("black",tags,direction,remanent.config.bound_height) in 
       let abs,ord = point_on_countour_ext remanent site.site_node direction 1. height in 
       let node = {dummy_node with color = color ;  (*id = node_id ;*) abscisse = abs ; ordinate = ord ; tags = tags } in 
-      let site = {site with site_states = 
-	  snd (IdMap.add_map () ()  node_id (Bound_node (node)) site.site_states)}
+      let site = 
+	{site 
+	 with 
+	   site_states = 
+	    IdMap.add  node_id (Bound_node (node)) site.site_states}
       in 
-      let agent = {agent with agent_sites = snd (IdMap.add_map () ()  site_id site agent.agent_sites)} in 
+      let agent = 
+	{agent 
+	 with 
+	   agent_sites = IdMap.add  site_id site agent.agent_sites} 
+      in 
       (agent_id,site_id,node_id),
-      {remanent with 
-	agents  = snd (IdMap.add_map () ()  agent_id agent remanent.agents);
-	nodes = 
-	  snd (IdMap.add_map () ()  node_id node  remanent.nodes)}
+      {
+	remanent with 
+	  agents  = IdMap.add  agent_id agent remanent.agents;
+	  nodes = IdMap.add  node_id node  remanent.nodes
+      }
 	
     let filter_label_in_agent remanent label =
       if remanent.config.show_agent_names then label else "" 
@@ -1091,7 +1147,11 @@ module GKappa =
 	  (fun x ->
 	    try 
 	      let s = s_of_x x in 
-	      let set = TagMap.find s map in 
+	      let set = 
+		match TagMap.find_option s map 
+		with None -> IntSet.empty
+		| Some set -> set
+	      in 
 	      p x set 
 	    with 
 	      Not_found -> deft)
@@ -1153,7 +1213,7 @@ module GKappa =
 	let _ = Printf.fprintf chan "%s [\n" (name_of_site agent_id agent.agent_node site_id site.site_node) in
 	let _ = dump_node chan filter (filter_label_in_site remanent) (filter_color_in_site remanent) site.site_node remanent in 
 	let _ = Printf.fprintf chan "]\n\n" in 
-	let _ = IdMap.iter_map   (dump_state chan filter remanent agent_id agent site_id site ) site.site_states in 
+	let _ = IdMap.iter (dump_state chan filter remanent agent_id agent site_id site ) site.site_states in 
 	()
 	  
     let dump_agent chan filter remanent agent_id agent = 
@@ -1163,7 +1223,7 @@ module GKappa =
 	let _ = Printf.fprintf chan "%s [\n" (name_of_agent agent_id agent.agent_node) in 
 	let _ = dump_node chan filter (filter_label_in_agent remanent) (filter_color_in_agent remanent) agent.agent_node remanent in 
 	let _ = Printf.fprintf chan "]\n\n" in 
-	let _ = IdMap.iter_map (dump_site chan filter remanent agent_id agent) agent.agent_sites in 
+	let _ = IdMap.iter (dump_site chan filter remanent agent_id agent) agent.agent_sites in 
 	()
 	  
     let dump_edge_list chan filter remanent (n1,n2) l = 
@@ -1208,12 +1268,12 @@ module GKappa =
       let chan = open_out file in 
       let _ = Printf.fprintf chan "digraph G {\n\n" in 
       let _ = 
-	IdMap.iter_map 
+	IdMap.iter
 	  (dump_agent chan filter remanent) 
 	  remanent.agents
       in 
       let _ = 
-	Id2Map.iter_map 
+	Id2Map.iter 
 	  (dump_edge_list chan filter remanent)
 	  remanent.edge_list  
       in 
@@ -1221,7 +1281,7 @@ module GKappa =
       let _ = close_out chan in 
       ()
 	
-    let new_state agent (site:site) (remanent,state_list) state =       let id,remanent = 
+    let new_state agent site (remanent,state_list) state =       let id,remanent = 
 	match state
 	with 
 	  Free op  -> add_free site op remanent
@@ -1232,13 +1292,41 @@ module GKappa =
 	
     let new_site agent (remanent,site_list) (site,directives,states) = 
       let site,remanent = add_site agent site  directives remanent in 
-      let remanent,states  = List.fold_left (new_state agent site) (remanent,[]) states in 
-      remanent,((site,List.rev states)::site_list)
+      match site
+      with 
+      | None -> 
+	let _ = 
+	  Printf.fprintf stderr "ERROR: some calls to add_site in new_site have failed\n" in 
+	remanent,
+	((-1,-1,-1,(-1,-1)),
+	 List.map (fun x -> (-1,-1,-1)) states)::site_list
+      | Some site ->
+      let remanent,states  = 
+	List.fold_left 
+	  (new_state agent site) 
+	  (remanent,[]) 
+	  states 
+      in 
+      remanent,((
+	site,
+	List.rev states)::site_list)
 	
     let new_agent (remanent,agent_list) (ag,op1,op2,op3,l)  = 
       let agent,remanent = add_agent ag op1 op2 op3 remanent in 
-      let remanent,sites = List.fold_left (new_site agent) (remanent,[]) l in 
-      remanent,(agent,List.rev sites)::agent_list
+      match 
+	agent 
+      with 
+      | None -> 
+	let _ = 
+	  Printf.fprintf stderr "ERROR: some calls to add_agent in new_agent have failred\n" in 
+	remanent,
+	((-1,-1),
+	 List.map 
+	   (fun (_,_,x) -> (-1,-1,-1,(-1,-1)),
+	     List.map (fun x -> (-1,-1,-1)) x) l)::agent_list
+      | Some agent ->   
+	let remanent,sites = List.fold_left (new_site agent) (remanent,[]) l in 
+	remanent,(agent,List.rev sites)::agent_list
 	
     let add_in_graph (remanent:remanent_state) (l:graph) = 
       let remanent,l = 
@@ -1268,7 +1356,7 @@ module GKappa =
 	  
     
     let fold_id_and_nodes f remanent = 
-      IdMap.fold_map f remanent.nodes
+      IdMap.fold f remanent.nodes
 	
     let fold_id f = fold_id_and_nodes (fun x _ -> f x)
     let fold_node f = fold_id_and_nodes (fun _ y -> f y)
@@ -1284,48 +1372,46 @@ module GKappa =
 	 site_node = f site.site_node ;
 	 site_direction = g site.site_direction ; 
 	 site_states = 
-	  IdMap.map_map (map_node_in_state f) site.site_states}
+	  IdMap.map (map_node_in_state f) site.site_states}
     let map_node_in_agent f g agent = 
       {agent 
        with 
 	 agent_node = f agent.agent_node ;
 	 agent_sites = 
-	  IdMap.map_map (map_node_in_sites f g) agent.agent_sites}
+	  IdMap.map (map_node_in_sites f g) agent.agent_sites}
 	
     let map_node f_node f_direction remanent = 
       {remanent 
        with 
 	 agents = 
-	  IdMap.map_map (map_node_in_agent f_node f_direction) remanent.agents ; 
-(*         nodes = IdMap.map_map f_node remanent.nodes; 
+	  IdMap.map (map_node_in_agent f_node f_direction) remanent.agents ; 
+         nodes = IdMap.map f_node remanent.nodes; 
          edge_list = 
-             Id2Map.map_map (List.map (fun edge -> {edge with node1 = f_node edge.node1 ; node2 = f_node edge.node2 }))
-	       remanent.edge_list*)
+             Id2Map.map (List.map (fun edge -> {edge with node1 = f_node edge.node1 ; node2 = f_node edge.node2 }))
+	       remanent.edge_list
       }
 
     let map_id f_id remanent = (*bug ne passe pas dans les frees *)
       let nodes,nnodes = 
-	IdMap.fold_map
+	IdMap.fold
 	  (fun id node (map,nnodes) -> 
-	    snd (IdMap.add_map () () (f_id id) node map),
+	    IdMap.add (f_id id) node map,
 	    max (f_id id) nnodes)
 	  remanent.nodes
-	  (IdMap.empty_map,0) 
+	  (IdMap.empty,0) 
       in 
       let nnodes = max (f_id remanent.nnodes) (nnodes+1) in 
       let agents,name_map = 
-	IdMap.fold_map 
+	IdMap.fold
 	  (fun id agent (map,map2) -> 
 	    let ag_id = f_id id in 
 	    let name = name_of_agent ag_id agent.agent_node in 
 	    let agent_node = {agent.agent_node with 
 	      name = name }
 	    in 
-	    let map2 = 
-	      snd (IdMap.add_map () () ag_id name map2) 
-	    in 
+	    let map2 = IdMap.add ag_id name map2 in 
 	    let agent_sites,map2 = 
-	      IdMap.fold_map 
+	      IdMap.fold
 		(fun id site (map,map2) -> 
 		  let site_id = f_id id in 
 		  let name = name_of_site ag_id agent_node site_id site.site_node in 
@@ -1334,9 +1420,9 @@ module GKappa =
 		      site_node = {site.site_node 
 				   with name = name}}
 		  in 
-		  snd (IdMap.add_map () () site_id site map),
-		  snd (IdMap.add_map () () site_id name map2))
-		agent.agent_sites (IdMap.empty_map,map2)
+		  IdMap.add site_id site map,
+		  IdMap.add site_id name map2)
+		agent.agent_sites (IdMap.empty,map2)
 	    in 
 	    let agent = 
 	      { 
@@ -1346,27 +1432,32 @@ module GKappa =
 		  agent_sites = agent_sites 
 	      }
 	    in 
-	    snd (IdMap.add_map () ()  (f_id id) agent map),
+	    IdMap.add  (f_id id) agent map,
 	    map2)
-	  remanent.agents (IdMap.empty_map,IdMap.empty_map)
+	  remanent.agents (IdMap.empty,IdMap.empty)
       in
       let edge_list = 
-	Id2Map.fold_map
+	Id2Map.fold
 	  (fun (id1,id2) y z -> 
 	    let y = 
 	      List.map 
 		(fun y -> 
-		  try 
-		    {y with node1 = 
-			{y.node1 with name = snd (IdMap.find_map () () (f_id id1) name_map)} ;
-		    node2 = 
-			{y.node2 with name = snd (IdMap.find_map () () (f_id id2) name_map)}}
-		  with _ -> y)
-		y 
+		  match 
+		    IdMap.find_option (f_id id1) name_map,
+		    IdMap.find_option (f_id id1) name_map
+		  with 
+		  | None,_ | _,None -> 
+		    let _ = Printf.fprintf stderr "ERROR: in map_d the data structure is in an inconsistent state\n" in 
+		    y
+		  | Some name1,Some name2 -> 
+		    {y 
+		     with 
+		       node1 = {y.node1 with name = name1} ;
+		       node2 = {y.node2 with name = name2}})
+		y
 	    in 
-	      
-	    snd (Id2Map.add_map () ()  (f_id id1,f_id id2) y z))
-	  remanent.edge_list Id2Map.empty_map
+	    Id2Map.add  (f_id id1,f_id id2) y z)
+	  remanent.edge_list Id2Map.empty
       in  
       let remanent = 
 	{remanent with 
@@ -1444,38 +1535,39 @@ module GKappa =
 	  remanent 
 	  
     let fuse fold2map addmap f map1 map2 = 
-       snd (
-	    fold2map
-	      () () 
-	      (fun x y z map -> 
-		f x y z map)
-	      (fun x y map -> map)
-	      (fun x z map -> 
-		addmap () () x z (snd map))
-	      map1 
-	      map2
-	      map1)
+      fold2map
+           (fun x y z map -> f x y z map)
+	   (fun x y map -> map)
+	   (fun x z map -> addmap x z map)
+	map1 
+	map2
+	map1
 
+    (* carefully review the following function and think, I think the precondistion is to restrictive *)
+    (* test with two graphs with distinct interfaces on a agent, *)
+    (* test with two graphs with distinct states on a site*)
     let fuse remanent remanent' = 
-      let _ = Printf.fprintf stdout "FUSE %i %i \n" remanent.nnodes remanent'.nnodes in 
-      if not (remanent.config == remanent'.config)
-      then (Printf.fprintf stdout "1334\n";raise Exit)
-      else 
-	let nnodes = max remanent.nnodes remanent'.nnodes in 
-	let nodes = fuse IdMap.fold2_map IdMap.add_map 
-	  (fun x y z map -> if y==z then map else (Printf.fprintf stderr "1338\n";raise Exit))
+      let _ = 
+	if not (remanent.config == remanent'.config)
+	then Printf.fprintf stdout "Warning: In fuse, graphs have a different configurations settings.\n"
+      in 
+      let nnodes = max remanent.nnodes remanent'.nnodes in 
+      let nodes = 
+	fuse IdMap.fold2 IdMap.add 
+	  (fun x y z map -> if y==z then map else 
+	      (Printf.fprintf stderr "Error: In fuse, try to fuse maps with different images\n";map))
 	  remanent.nodes remanent'.nodes in 
 	let nodes = remanent.nodes in 
 	let fuse_hier l1 g1 l2 g2 a b = 
-	  fuse IdMap.fold2_map IdMap.add_map 
+	  fuse IdMap.fold2 IdMap.add 
 	    (fun x y z map -> 
 	      g1 x y z (
-		fuse IdMap.fold2_map IdMap.add_map
+		fuse IdMap.fold2 IdMap.add
 		  (fun x y z map -> 
-		    g2 x y z (fuse IdMap.fold2_map IdMap.add_map
+		    g2 x y z (fuse IdMap.fold2 IdMap.add
 				(fun x y z map ->
 				  if y==z then map else 
-				    let _ = Printf.fprintf stdout "1350\n" in raise Exit)
+				    let _ = Printf.fprintf stderr  "ERROR: in fuse, inconsistent images\n"  in map)
 				(l2 y) (l2 z)) map)
 		  (l1 y) (l1 z)) map)
 	    a b 
@@ -1484,9 +1576,9 @@ module GKappa =
 	  fuse_hier 
 	    (fun x -> x.agent_sites) 
 	    (fun x y z agent_sites map -> 
-	      if not (y.agent_type ==z.agent_type && y.agent_node == z.agent_node)
-	      then (Printf.fprintf stdout "1360";raise Exit)
-	      else IdMap.add_map () () x {y with agent_sites = agent_sites} (snd map))
+	      if not (y.agent_type ==z.agent_type)
+	      then let _ = Printf.fprintf stderr "ERROR: in fuse, try to fuse agent with incompatible types\n" in map
+	      else IdMap.add x {y with agent_sites = agent_sites} map)
 	    (fun x -> x.site_states)
 	    (fun x y z site_states map -> map)
 	    remanent.agents remanent'.agents 
@@ -1496,34 +1588,31 @@ module GKappa =
 	    (fun x -> x.sig_agent_sites) 
 	    (fun x y z sig_agent_sites map -> 
 	      if not (y.sig_agent_node == z.sig_agent_node)
-	      then raise Exit 
+	      then  
+		let _ = Printf.fprintf stderr "ERROR: in fuse, try to fuse two graphs with incompatible signatures\n" 
+		in map
 	      else 
-		IdMap.add_map () () x 
+		IdMap.add x 
 		  {y 
 		   with 
 		     sig_agent_sites = sig_agent_sites ; 
 		     sig_agent_n_sites = max y.sig_agent_n_sites z.sig_agent_n_sites} 
-		  (snd map))
+		  map)
 	    (fun x -> x.sig_site_states)
 	    (fun x y z site_states map -> map)
 	    remanent.agent_types remanent'.agent_types
 	in 
 	let edge_list = 
-	  snd (Id2Map.fold2_map
-	    ()
-	    ()
+	  Id2Map.fold2
 	    (fun x y z map -> 
 	      if not(y==z) then map
-	      else let _ = Printf.fprintf stdout "1407\n" in 
-		   raise Exit)
+	      else let _ = Printf.fprintf stderr "ERROR: in fuse, incompatible edges\n" in map)
 	    (fun x y z -> z)
-	    (fun x y map -> Id2Map.add_map () () x y (snd map))
+	    (fun x y map -> Id2Map.add x y map)
    	    remanent.edge_list 
 	    remanent'.edge_list
 	    remanent.edge_list   
-	  )
 	in
-	let _ = Printf.fprintf stdout "FUSE: %i\n" nnodes in 
 	{ 
 	  remanent 
 	  with nnodes = nnodes ; 
@@ -1535,7 +1624,6 @@ module GKappa =
 
     let disjoint_union remanent remanent' = 
       let delta = remanent.nnodes in 
-      let _ = Printf.fprintf stdout "disjoint_union %i %i\n" delta remanent'.nnodes in 
       let (f,g,h,remanent') = add_to_id delta remanent' in 
       (fun x->x),
 	  (fun y->y),
@@ -1594,6 +1682,19 @@ module GKappa =
 	  remanent
 
     let dummy_node_type = 1 
+
+    let filter_out_direction = 
+      List.filter
+	(fun x -> match x with Direction _ -> false | _ -> true)
+
+    let add_dummy_agent string x y directives r = 
+	  match 
+	    add_agent dummy_node_type x y directives r 
+	  with 
+	    None,s -> 
+	      let _ = Printf.fprintf stderr "ERROR, internal errorin %s: adding a dummy agent has failed\n" string
+	    in -1,r
+	  | Some i,s -> fst i,s
 	  
     let add_rule x y directives remanent = 
         let rec parse_attributes att (comment,width,size,direction,tags,color) = 
@@ -1621,37 +1722,37 @@ module GKappa =
 	      | Scale f ->comment,width,size,direction,tags,color
 	    end
 	in 
-	let _ = Printf.fprintf stdout "NRULES %i\n" remanent.nnodes in 
 	let comment,width,size,direction,tags,color = 
 	  parse_attributes 
 	    directives 
 	    ("",float_of_int (remanent.config.rule_width),remanent.config.rule_length,e,TagMap.empty,"black")
 	in 
+	let directives = 
+	  filter_out_direction directives 
+	in 
+	    
 	let width = int_of_float width in 
 	let angle = (remanent.config.pi *. direction)/.180. in 
      	let x1 = x +. size *. (sin angle) /. 2. in 
 	let y1 = y +. size *. (cos angle) /. 2. in 
 	let x2 = x -. size *. (sin angle) /. 2. in 
 	let y2 = y -. size *. (cos angle) /. 2. in 
-	let (node_id1,_),remanent = 
-	  add_agent dummy_node_type x1 y1 directives remanent 
-	in 
-	let (node_id2,_),remanent = 
-	  add_agent dummy_node_type x2 y2  directives remanent
-	in 
-	let node1 = 
-	  snd 
-	    (IdMap.find_map () () node_id1 remanent.nodes)
-	in 
-	let node2 = 
-	  snd
-	    (IdMap.find_map () () node_id2 remanent.nodes)
-	in 
-	add_link 
-	  node_id2 
-	  node_id1 
-	  {rule with width = width ; comment = comment ;
-	  color = color ; edges_tag = tags ; node1 = node2 ; node2 = node1 } remanent 
+	let node_id1,remanent = add_dummy_agent "add_rule" x1 y1 directives remanent in 
+	let node_id2,remanent = add_dummy_agent "add_rule" x2 y2 directives remanent in 
+	match 
+	  IdMap.find_option node_id1 remanent.nodes,
+	  IdMap.find_option node_id2 remanent.nodes
+	with 
+	| None,_ | _,None -> 
+	  let _ = Printf.fprintf stderr "ERROR, cannot create a rule, the just created nodes do not exist\n" in 
+	  remanent 
+	  | Some node1,Some node2
+	    -> 
+	    add_link 
+	      node_id2 
+	      node_id1 
+	      {rule with width = width ; comment = comment ;
+		color = color ; edges_tag = tags ; node1 = node2 ; node2 = node1 } remanent 
 	  
     let cross remanent = 
       let comment = "" in 
@@ -1659,47 +1760,39 @@ module GKappa =
       match corners remanent 
       with 
       | None -> remanent 
-      | Some (x,x',y,y') -> 
-	let (node_id1,_),remanent = 
-	  add_agent dummy_node_type x y' directives remanent 
+      | Some (x,x',y,y') ->
+	let node_id1,remanent = 
+	  add_dummy_agent "cross" x y' directives remanent 
 	in 
-	let (node_id2,_),remanent = 
-	  add_agent dummy_node_type x' y  directives remanent
+	let node_id2,remanent = 
+	  add_dummy_agent "cross" x' y  directives remanent
 	in 
-	let (node_id3,_),remanent = 
-	  add_agent dummy_node_type x y directives remanent 
+	let node_id3,remanent = 
+	  add_dummy_agent "cross" x y directives remanent 
 	in 
-	let (node_id4,_),remanent = 
-	  add_agent dummy_node_type x' y'  directives remanent
+	let node_id4,remanent = 
+	  add_dummy_agent "cross" x' y' directives remanent
 	in 
-	let node1 = 
-	  snd 
-	    (IdMap.find_map () () node_id1 remanent.nodes)
-	in 
-	let node2 = 
-	  snd
-	    (IdMap.find_map () () node_id2 remanent.nodes)
-	in 
-	let node3 = 
-	  snd 
-	    (IdMap.find_map () () node_id3 remanent.nodes)
-	in 
-	let node4 = 
-	  snd
-	    (IdMap.find_map () () node_id4 remanent.nodes)
-	in 
-	add_link 
-	  node_id3
-	  node_id4
-	  {rule with 
-	    forward = false ;width = 5 ; comment = comment ;
-	    color = "red" ; edges_tag = TagMap.empty ; node1 = node3 ; node2 = node4 }
-	(
-	  add_link 
-	    node_id2 
-	    node_id1 
-	    {rule with forward = false ;width = 5 ; comment = comment ;
-	      color = "red" ; edges_tag = TagMap.empty ; node1 = node2 ; node2 = node1 } remanent )
+	match 
+	  List.map 
+	    (fun x -> IdMap.find_option x remanent.nodes) 
+	    [node_id1;node_id2;node_id3;node_id4]
+	with 
+	  [Some node1;Some node2;Some node3;Some node4] -> 
+	    add_link 
+	      node_id3
+	      node_id4
+	      {rule with 
+		forward = false ;width = 5 ; comment = comment ;
+		color = "red" ; edges_tag = TagMap.empty ; node1 = node3 ; node2 = node4 }
+	      (
+		add_link 
+		  node_id2 
+		  node_id1 
+		  {rule with forward = false ;width = 5 ; comment = comment ;
+		    color = "red" ; edges_tag = TagMap.empty ; node1 = node2 ; node2 = node1 } remanent )
+	| _ -> 
+	  let _ = Printf.fprintf stderr "ERROR, cannot create a cross, the just created nodes do not exist\n" in remanent 
 	    
 
     let tag_all_nodes t i remanent = 
@@ -1713,7 +1806,7 @@ module GKappa =
       {
       remanent with 
 	edge_list = 
-	  Id2Map.map_map (List.map (fun x -> {x with edges_tag = add_tag t i x.edges_tag})) remanent.edge_list
+	  Id2Map.map (List.map (fun x -> {x with edges_tag = add_tag t i x.edges_tag})) remanent.edge_list
       }
 
    end:GKappa)

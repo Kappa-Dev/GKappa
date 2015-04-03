@@ -76,31 +76,31 @@ let _ = dump "hier_contact_map_annotated.dot" []  annotated_contact_map
 let _ = dump "hier_contact_map_d_annotated.dot" ["site",1]  annotated_contact_map 
 let _ = dump "hier_contact_map_g_annotated.dot" ["site",0]  annotated_contact_map
 
-let p,nnn = add_agent p 0. 0. [] remanent
-let sg,unn = add_site p g [] nnn
+let Some p,nnn = add_agent p 0. 0. [] remanent
+let Some sg,unn = add_site p g [] nnn
 let _,pnn = add_internal_state sg gp [Direction sw;Scale 1.2] unn
 let _,unn = add_internal_state sg gu [Direction sw;Scale 1.2] unn 
-let sc,nun = add_site p c [] nnn
+let Some sc,nun = add_site p c [] nnn
 let _,npn = add_internal_state sc cp [Direction n] nun
 let _,nun = add_internal_state sc cu [Direction n] nun 
-let sd,nnu = add_site p d [] nnn
+let Some sd,nnu = add_site p d [] nnn
 let _,nnp = add_internal_state sd dp [Direction se;Scale 1.2] nnu
 let _,nnu = add_internal_state sd du [Direction se;Scale 1.2] nnu
-let sg,spn = add_site p g [] npn 
+let Some sg,spn = add_site p g [] npn 
 let _,ppn = add_internal_state sg gp [Direction sw;Scale 1.2] spn
 let _,upn = add_internal_state sg gu [Direction sw;Scale 1.2] spn 
-let sd,nps = add_site p d [] npn 
+let Some sd,nps = add_site p d [] npn 
 let _,npp = add_internal_state sd dp [Direction se] nps
 let _,npu = add_internal_state sd du [Direction se] nps 
-let sg,spu = add_site p g [] npu 
+let Some sg,spu = add_site p g [] npu 
 let _,ppu = add_internal_state sg gp [Direction sw] spu
 let _,upu = add_internal_state sg gu [Direction sw] spu 
-let sg,spp = add_site p g [] npp 
+let Some sg,spp = add_site p g [] npp 
 let _,ppp = add_internal_state sg gp [Direction sw] spp
 let _,upp = add_internal_state sg gu [Direction sw] spp 
-let sg,sun = add_site p g [] nun 
+let Some sg,sun = add_site p g [] nun 
 let _,uun = add_internal_state sg gu [Direction sw] sun 
-let sd,uus = add_site p d [] uun
+let Some sd,uus = add_site p d [] uun
 let _,uuu = add_internal_state sd du [Direction se] uus
 
 
@@ -154,6 +154,23 @@ let _ = dump "hier_reaction_du.dot" [] reaction_du
 let _ = dump "hier_reaction_dp.dot" [] reaction_dp
 let _ = dump "hier_reaction_gu.dot" [] reaction_gu
 let _ = dump "hier_reaction_gp.dot" [] reaction_gp
+
+let _,_,_,_,_,_,reaction_d = disjoint_union reaction_du (move_remanent_right_to 0.5  reaction_dp reaction_du)
+let _,_,_,_,_,_,reaction_g = disjoint_union reaction_gu (move_remanent_right_to 0.5 reaction_gp reaction_gu)
+let _ = dump "hier_reaction_d.dot" [] reaction_d
+let _ = dump "hier_reaction_g.dot" [] reaction_g
+
+let _,_,_,_,_,_,reactions = 
+  disjoint_union 
+    reaction_c
+    (move_remanent_bellow 0. reaction_d reaction_c)
+
+let _,_,_,_,_,_,reactions = 
+  disjoint_union 
+    reactions
+    (move_remanent_bellow 0. reaction_g reactions)
+
+let _ = dump "hier_reactions.dot" [] reaction_g
 
 let _,_,_,_,_,_,tmp =  
   disjoint_union upn

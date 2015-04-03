@@ -20,7 +20,7 @@
 open Config
 open Signature_egfr
  
-let empty = remanent 
+let empty = Signature_egfr.remanent 
 
 
 
@@ -36,7 +36,7 @@ let remanent,
   ]
   = 
   add_in_graph 
-    remanent 
+    empty 
     [
       egf,2.7,13.,[],
       [egf_r,[Direction s],
@@ -468,7 +468,7 @@ let rule = add_rule  (-.1.)  12.  [Direction e] rule
 
 let _ = dump "flow_cons_rule.dot" ["contact_map",0;"flow",0]  rule 
 
-let cons_egfr_l,fragment = add_site cons_egfr egfr_l [Direction s] lhs_domain 
+let (Some cons_egfr_l),fragment = add_site cons_egfr egfr_l [Direction s] lhs_domain 
 let _,fragment = add_bound cons_egfr_l [Direction se] fragment 
 
 let _ = dump "flow_cons.dot" ["contact_map",0;"flow",0]  fragment 
@@ -514,9 +514,9 @@ let prod1 = add_match
   [ agrule (agr cons_egfr), agf frag_egfr;
     agrule (agr cons_shc),agf frag_shc]
       prod
-let st,prod2 = add_site (agrule (agr cons_egfr)) egfr_l [Direction s;Color "red"] prod1 
+let Some st,prod2 = add_site (agrule (agr cons_egfr)) egfr_l [Direction s;Color "red"] prod1 
 let _,prod2 = add_bound st [Color "red"] prod2 
-let st,prod2 = add_site (agrule (agl cons_egfr)) egfr_l [Direction s;Color "red"] prod2
+let Some st,prod2 = add_site (agrule (agl cons_egfr)) egfr_l [Direction s;Color "red"] prod2
 let _,prod2 = add_bound st [Color "red"] prod2 
 let _ = dump "flow_prod_match.dot" ["contact_map",0;"flow",0]  prod1
 let _ = dump "flow_prod_overlap.dot" ["contact_map",0;"flow",0]  prod2

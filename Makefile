@@ -1,6 +1,4 @@
-#VN:=$(shell cat tag/number)#            #Git version number for commit tag
-#VERSION:=$(shell cat tag/version)#      #Major revision release number
-#RELEASE:=$(shell cat tag/release)#      #Release number
+PDFREP=PDF
 DATE:=`date +'%Y-%m-%d %H:%M:%S'`#      #date YYYY-MM-DD 
 
 .DEFAULT_GOAL := all
@@ -8,13 +6,17 @@ BIN=bin/
 
 
 KAPPAMODELSREP=examples/
-
+RUNNINGREP=$(CURDIR)
 EXAMPLES=$(wildcard $(KAPPAMODELSREP)*.ml)
 BINAS=$(patsubst $(KAPPAMODELSREP)%,$(BIN)%,$(EXAMPLES))
 BINS=$(BINAS:%.ml=%)
+HOMEBINS=$(patsubst $(BIN)%,%,$(BINS))
+BINSWITHOUTREP=$(patsubst $(BIN)%,%,$(BINS))
 TERM = $(shell echo $$TERM)
 
-OCAMLINCLUDES=-I examples
+DOTREP = DOT
+
+OCAMLINCLUDES=-I examples -I sources 
 
 ifeq ($(TERM), dumb) # An approximation of "am I launched from emacs ?" :-)
  OCAMLBUILDFLAGS = -classic-display -use-ocamlfind
@@ -30,15 +32,35 @@ endif
 %.native %.byte: $(filter-out _build/,$(wildcard *.ml*)) $(wildcard examples/*.ml*) 
 	$(OCAMLBINPATH)ocamlbuild $(OCAMLBUILDFLAGS) $(OCAMLINCLUDES) $@
 
-bin/%: %.native Makefile
-	[ -d bin ] || mkdir bin && cp $< $@
-	rm -f $(notdir $@) && ln -s $@ $(notdir $@)
+$(EXAMPLESBINREP):
+	mkdir $(EXAMPLESBINREP) 
+
+$(PDFREP):
+	mkdir $(PDFREP)
+
+$(DOTREP):
+	mkdir $(DOTREP)
+
+$(BIN)%: %.native $(EXAMPLESBINREP) Makefile
+	[ -d bin ] || mkdir bin && cp $< $(BIN)$(notdir $@)
+	rm -f $(RUNNINGREP)/$(EXAMPLESBINREP)/$(notdir $@) && ln -s $(RUNNINGREP)/$@ $(RUNNINGREP)/$(EXAMPLESBINREP)/$(notdir $@)
 
 all: $(BINS)
 
+pdf: $(PREEXAMPLESBIN) run_bin $(PDFREP)
+	cd $(DOTREP) ; for i in *.dot ; do neato -Tpdf -o $(RUNNINGREP)/$(PDFREP)/$$i.pdf $$i ; done
+
+
+run_bin: $(BINS) $(DOTREP)
+	cd $(BIN) ; for i in $(BINSWITHOUTREP) ; do  ./$(notdir $$i) ; done
+	mv $(BIN)/*.dot $(CURDIR)/$(DOTREP)/
+
+$(PDF)/%.pdf: $(DOT)/%.dot 
+	neato -Tpdf -o $@ $<
+
 clean: 
 	$(OCAMLBINPATH)ocamlbuild -clean
-	rm -rf $(BIN) 
+	rm -rf $(BIN) $(PDFREP) $(DOTREP) $(HOMEBINS)
 	find . -name \*~ -delete
 
 full: 

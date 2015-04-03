@@ -57,7 +57,6 @@ let x,x',y,y' =
   match corners rule 
   with None -> 0.,0.,0.,0.
   | Some rep -> rep 
-let _ = Printf.fprintf stderr "corners: %f %f %f %f" x y x' y' 
 let rule = add_rule 4.3 (-.1.)  [Comment "k"] rule 
 
 let _ = dump "dimerisation.dot" []  rule

@@ -1,6 +1,6 @@
 FLG -w +a -strict-formats -safe-string
 
-S .
+S sources
 B _build/
 S examples
 B _build/
