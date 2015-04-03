@@ -29,7 +29,7 @@ endif
 
 .PRECIOUS: 
 
-%.native %.byte: $(filter-out _build/,$(wildcard *.ml*)) $(wildcard examples/*.ml*) 
+%.native %.byte: $(wildcard sources/*.ml*) $(wildcard examples/*.ml*) 
 	$(OCAMLBINPATH)ocamlbuild $(OCAMLBUILDFLAGS) $(OCAMLINCLUDES) $@
 
 $(EXAMPLESBINREP):

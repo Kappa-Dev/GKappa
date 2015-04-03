@@ -1143,19 +1143,19 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	
     let filter_tags list map = 
       let def l deft p s_of_x = 
-	List.for_all 
-	  (fun x ->
-	    try 
-	      let s = s_of_x x in 
-	      let set = 
-		match TagMap.find_option s map 
-		with None -> IntSet.empty
-		| Some set -> set
-	      in 
-	      p x set 
-	    with 
-	      Not_found -> deft)
-	  l 
+	let rec aux todo = 
+	  match todo
+	  with 
+	  | [] -> true
+	  | x::q -> 
+	    let s = s_of_x x in 
+	      match TagMap.find_option s map 
+	      with None -> deft
+	      | Some set ->
+		if p x set 
+		then aux q 
+		else false
+	in aux l 
       in 
       def list true (fun (s,i) set -> IntSet.mem i set) fst 
 	
