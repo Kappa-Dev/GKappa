@@ -118,35 +118,37 @@ let _ = dump "hier_npu.dot" []  npu
 let _,_,_,_,_,_,tmp =  
   disjoint_union uuu 
     (move_remanent_right_to 0.6 upu upu)
+
 let reaction_c = 
-  add_rule 1.3 0. 
-    [Comment("kc");Height 0.6] tmp 
+  translate 2. 0. (add_rule 1.1 0. 
+    [Comment("kc");Height 0.6] tmp)
+
 
 let _,_,_,_,_,_,tmp =  
   disjoint_union upu 
     (move_remanent_right_to 0.6 upp upp)
 let reaction_du = 
-  add_rule 1.3 0. 
+  add_rule 1.1 0. 
     [Comment("kd");Height 0.6] tmp 
 let _,_,_,_,_,_,tmp =  
   disjoint_union ppu 
     (move_remanent_right_to 0.6 ppp ppp)
 let reaction_dp = 
-  add_rule 1.3 0. 
+  add_rule 1.1 0. 
     [Comment("kd");Height 0.6] tmp 
 let _,_,_,_,_,_,tmp =  
   disjoint_union upu 
     (move_remanent_right_to 0.6 ppu ppu)
 
 let reaction_gu = 
-  add_rule 1.3 0. 
-    [Comment("kd");Height 0.6] tmp 
+  add_rule 1.1 0. 
+    [Comment("kg");Height 0.6] tmp 
 let _,_,_,_,_,_,tmp =  
   disjoint_union upp
     (move_remanent_right_to 0.6 ppp ppp)
 let reaction_gp = 
-  add_rule 1.3 0. 
-    [Comment("kd");Height 0.6] tmp 
+  add_rule 1.1 0. 
+    [Comment("kg");Height 0.6] tmp 
 
 
 let _ = dump "hier_reaction_c.dot" [] reaction_c
@@ -155,8 +157,8 @@ let _ = dump "hier_reaction_dp.dot" [] reaction_dp
 let _ = dump "hier_reaction_gu.dot" [] reaction_gu
 let _ = dump "hier_reaction_gp.dot" [] reaction_gp
 
-let _,_,_,_,_,_,reaction_d = disjoint_union reaction_du (move_remanent_right_to 0.5  reaction_dp reaction_du)
-let _,_,_,_,_,_,reaction_g = disjoint_union reaction_gu (move_remanent_right_to 0.5 reaction_gp reaction_gu)
+let _,_,_,_,_,_,reaction_d = disjoint_union reaction_du (move_remanent_right_to 2. reaction_dp reaction_du)
+let _,_,_,_,_,_,reaction_g = disjoint_union reaction_gu (move_remanent_right_to 2. reaction_gp reaction_gu)
 let _ = dump "hier_reaction_d.dot" [] reaction_d
 let _ = dump "hier_reaction_g.dot" [] reaction_g
 
@@ -168,9 +170,9 @@ let _,_,_,_,_,_,reactions =
 let _,_,_,_,_,_,reactions = 
   disjoint_union 
     reactions
-    (move_remanent_bellow 0. reaction_g reactions)
+    (move_remanent_bellow 1.5 reaction_g reactions)
 
-let _ = dump "hier_reactions.dot" [] reaction_g
+let _ = dump "hier_reactions.dot" [] reactions
 
 let _,_,_,_,_,_,tmp =  
   disjoint_union upn
