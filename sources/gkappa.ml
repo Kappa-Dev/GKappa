@@ -1444,7 +1444,7 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 		(fun y -> 
 		  match 
 		    IdMap.find_option (f_id id1) name_map,
-		    IdMap.find_option (f_id id1) name_map
+		    IdMap.find_option (f_id id2) name_map
 		  with 
 		  | None,_ | _,None -> 
 		    let _ = Printf.fprintf stderr "ERROR: in map_d the data structure is in an inconsistent state\n" in 
