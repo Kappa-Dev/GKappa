@@ -3,8 +3,8 @@
  * GKappa
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
- * Creation: March, the 28th of 2015
- * Last modification: April, the 2nd of 2015
+ * Creation:                      <2015-03-28 feret>
+ * Last modification: Time-stamp: <2015-04-04 17:11:04 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -22,24 +22,28 @@
   A(y~p,z~u) -> A(y~p,z~p)
 *)
 
-open Config 
-
-
+open Config
 
 (* chemical species*)
-let _,remanent = init Config.config 
+let _,remanent = init config 
 (*signature*)
-let p,remanent = add_agent_type "" [FillColor "white";Width 0.8;Height 0.8;Shape "rectangle"] remanent 
-let g,remanent = add_site_type p "g" [FillColor "green";Radius 0.4;Direction sw;Scale 1.2] remanent 
-let c,remanent = add_site_type p "c" [FillColor "red";Radius 0.4;Direction n] remanent 
-let d,remanent = add_site_type p "d" [FillColor "blue";Radius 0.4;Direction se;Scale 1.2] remanent 
-let gu,remanent = add_internal_state_type g "u" [] remanent 
-let gp,remanent = add_internal_state_type g "p" [] remanent 
-let cu,remanent = add_internal_state_type c "u" [] remanent 
-let cp,remanent = add_internal_state_type c "p" [] remanent 
-let du,remanent = add_internal_state_type d "u" [] remanent 
-let dp,remanent = add_internal_state_type d "p" [] remanent 
-
+let remanent,
+  [p,
+   [
+     g,[gu;gp]; 
+     c,[cu;cp];
+     d,[du;dp]
+   ]
+  ]
+    = add_in_signature remanent 
+  [
+    "",[FillColor "white";Width 0.8;Height 0.8;Shape "rectangle"],
+    [
+      "g",[FillColor "green";Radius 0.4;Direction sw;Scale 1.2],["gu",[];"gp",[]];
+      "c",[FillColor "red";Radius 0.4;Direction n],["cu",[];"cp",[]];
+      "d",[FillColor "blue";Radius 0.4;Direction se;Scale 1.2],["du",[];"dp",[]]
+    ]
+  ]
 
 (* CONTACT MAP *)
 let contact_map , 

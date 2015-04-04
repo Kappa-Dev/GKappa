@@ -3,8 +3,8 @@
  * GKappa
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
- * Creation: March, the 28th of 2015
- * Last modification: April, the 2nd of 2015
+ * Creation:                      <2015-03-28 feret>
+ * Last modification: Time-stamp: <2015-04-04 17:10:31 feret> 
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -18,8 +18,7 @@
 (** small example to drow a dimerisation rule *)
 
 open Config
-open Signature_egfr
-  
+open Signature_egfr  
 
 let half_domain, 
   [
@@ -28,7 +27,7 @@ let half_domain,
   ]
   =
   add_in_graph 
-    remanent 
+    signature_egfr 
     [
       egf,0.,0.,[],
       [egf_r,[Direction e],[]];

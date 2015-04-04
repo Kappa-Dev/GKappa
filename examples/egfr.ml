@@ -3,8 +3,8 @@
  * GKappa
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
- * Creation: March, the 28th of 2015
- * Last modification: April, the 2nd of 2015
+ * Creation:                      <2015-03-28 feret>
+ * Last modification: Time-stamp: <2015-04-04 17:09:44 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -20,7 +20,7 @@
 open Config
 open Signature_egfr
  
-let empty = Signature_egfr.remanent 
+let empty = Signature_egfr.signature_egfr 
 
 
 
