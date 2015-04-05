@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-04 17:11:04 feret>
+ * Last modification: Time-stamp: <2015-04-05 07:46:02 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -23,6 +23,7 @@
 *)
 
 open Config
+open Geometry 
 
 (* chemical species*)
 let _,remanent = init config 
@@ -58,14 +59,14 @@ let contact_map ,
     [
       p,0.,0.,[],
       [c,[],
-       [Internal (cu,[Direction (n-.15.)]);
-        Internal (cp,[Direction (n+.15.)])];
+       [Internal_state (cu,[Direction (of_degree (to_degree n-.15.))]);
+        Internal_state (cp,[Direction (of_degree (to_degree n+.15.))])];
        g,[Tag ("site",0)],
-       [Internal (gu,[Direction (sw-.15.)]);
-	Internal (gp,[Direction (sw+.15.)])];
+       [Internal_state (gu,[Direction (of_degree (to_degree sw-.15.))]);
+	Internal_state (gp,[Direction (of_degree (to_degree sw+.15.))])];
        d,[Tag ("site",1)],
-       [Internal (gu,[Direction (se+.15.)]);
-	Internal (gp,[Direction (se-.15.)])]]]
+       [Internal_state (gu,[Direction (of_degree (to_degree se+.15.))]);
+	Internal_state (gp,[Direction (of_degree (to_degree se-.15.))])]]]
 
 let annotated_contact_map = 
   add_flow_list 
@@ -124,7 +125,7 @@ let _,_,_,_,_,_,tmp =
     (move_remanent_right_to 0.6 upu upu)
 
 let reaction_c = 
-  translate 2. 0. (add_rule 1.1 0. 
+  translate_graph {abscisse = 2. ; ordinate =  0.} (add_rule 1.1 0. 
     [Comment("kc");Height 0.6] tmp)
 
 

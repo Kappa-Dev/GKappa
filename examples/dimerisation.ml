@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-04 17:10:31 feret> 
+ * Last modification: Time-stamp: <2015-04-05 07:19:36 feret> 
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -18,6 +18,7 @@
 (** small example to drow a dimerisation rule *)
 
 open Config
+open Geometry
 open Signature_egfr  
 
 let half_domain, 

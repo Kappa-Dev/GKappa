@@ -16,6 +16,7 @@
 (* More applications are coming soon (hopefully) *)
 
 open Data_structures 
+open Geometry 
 
 type config = 
   { 
@@ -46,7 +47,7 @@ type directive =
 | Radius of float 
 | Width of float 
 | Height of float 
-| Direction of float  
+| Direction of angle 
 | Shape of string 
 | Set_scale of float 
 | Scale of float 
@@ -60,9 +61,9 @@ type site_type
 type internal_state_type
 type node 
 type state_type = 
-| Free of directive list 
-| Bound of directive list
-| Internal of internal_state_type * directive list
+| Free_site of directive list 
+| Bound_site of directive list
+| Internal_state of internal_state_type * directive list
     
 type agent 
 type site
@@ -93,15 +94,7 @@ val add_bound: site -> directive list -> remanent_state -> state * remanent_stat
   
 val add_free_list: (site * directive list) list -> remanent_state -> state list * remanent_state
   
-val s:float
-val n:float
-val ne:float
-val nw:float
-val w:float
-val e:float
-val se:float
-val sw:float 
-  
+
 val add_strong_flow_and_link: site -> site -> remanent_state -> remanent_state 
 val add_flow_and_link_list : (site*site) list -> remanent_state -> remanent_state
 val add_flow_list: (site*site) list -> remanent_state -> remanent_state 
@@ -111,7 +104,7 @@ val map_id: (id -> id) -> remanent_state ->
     
 val dump: string -> (tag*int) list -> remanent_state -> unit
 val rotate: float ->float-> float->remanent_state ->remanent_state
-val translate: float -> float -> remanent_state -> remanent_state
+val translate_graph: point -> remanent_state -> remanent_state
 val sym: float -> float ->remanent_state -> remanent_state
 val fuse: remanent_state -> remanent_state -> remanent_state
 val horizontal_swap: remanent_state -> remanent_state 

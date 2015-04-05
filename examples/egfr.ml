@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-04 17:09:44 feret>
+ * Last modification: Time-stamp: <2015-04-05 07:43:06 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -18,6 +18,7 @@
 (** Example to draw pictures related to the early egfr pathway *)
 
 open Config
+open Geometry 
 open Signature_egfr
  
 let empty = Signature_egfr.signature_egfr 
@@ -40,35 +41,35 @@ let remanent,
     [
       egf,2.7,13.,[],
       [egf_r,[Direction s],
-       [Free [Direction se]];] ;
+       [Free_site [Direction se]];] ;
       egfr,0.6,11.,[],
-      [egfr_l,[Direction 30.;Scale 1.2],
-       [Free [Direction e]];
-       egfr_r,[Direction 150.;Scale 1.2],
-       [Free [Direction s]];
-       egfr_Y68,[Direction 205.;Scale 1.2],
-       [Free [Direction sw];
-	Internal (egfr_Y68_u,[Direction se]);
-	Internal (egfr_Y68_p,[Direction (se+.20.)])];
-       egfr_Y48,[Direction 330.;Scale 1.2],
-       [Free [Direction ne];
-	Internal (egfr_Y48_u,[Direction (w+.20.)]);
-	Internal (egfr_Y48_p,[Direction w])]];
+      [egfr_l,[Direction (of_degree 30.);Scale 1.2],
+       [Free_site [Direction e]];
+       egfr_r,[Direction (of_degree 150.);Scale 1.2],
+       [Free_site [Direction s]];
+       egfr_Y68,[Direction (of_degree 205.);Scale 1.2],
+       [Free_site [Direction sw];
+	Internal_state (egfr_Y68_u,[Direction se]);
+	Internal_state (egfr_Y68_p,[Direction (of_degree (to_degree se+.20.))])];
+       egfr_Y48,[Direction (of_degree 330.);Scale 1.2],
+       [Free_site [Direction ne];
+	Internal_state (egfr_Y48_u,[Direction (of_degree (to_degree w+.20.))]);
+	Internal_state (egfr_Y48_p,[Direction w])]];
       shc,-.1.25,13.,[],
-      [shc_pi,[Direction 110.],
-       [Free []];
-       shc_Y7,[Direction 250.],
-       [Free [Direction sw];
-	Internal (shc_Y7_u,[Direction (nw-.10.)]);
-	Internal (shc_Y7_p,[Direction (nw-.30.)])]];    
+      [shc_pi,[Direction (of_degree 110.)],
+       [Free_site []];
+       shc_Y7,[Direction (of_degree 250.)],
+       [Free_site [Direction sw];
+	Internal_state (shc_Y7_u,[Direction (of_degree (to_degree nw-.10.))]);
+	Internal_state (shc_Y7_p,[Direction (of_degree (to_degree nw-.30.))])]];    
       grb2,-.1.25,9.15,[],
        [grb2_a,[Direction nw],
-	[Free [Direction (sw+.30.)]];
+	[Free_site [Direction (of_degree (to_degree sw+.30.))]];
 	grb2_b,[Direction e],
-	[Free [Direction se]]];
+	[Free_site [Direction se]]];
       sos,2.7,9.15,[],
       [sos_d,[Direction w],
-       [Free [Direction sw]]]]
+       [Free_site [Direction sw]]]]
 
 
 
@@ -137,29 +138,29 @@ let remanent,
       egfr,1.,12.,[],
       [egfr_l,[Direction n],[];
        egfr_r,[Direction e;Scale 0.9],[];
-       egfr_Y68,[Direction s;Tag ("frag",1)],[Free ([Direction sw]);Internal (egfr_Y68_u,[Direction (se)])];
-       egfr_Y48,[Direction w;Tag ("frag",2)],[Internal (egfr_Y48_p,[Direction 225.])]
+       egfr_Y68,[Direction s;Tag ("frag",1)],[Free_site ([Direction sw]);Internal_state (egfr_Y68_u,[Direction (se)])];
+       egfr_Y48,[Direction w;Tag ("frag",2)],[Internal_state (egfr_Y48_p,[Direction (of_degree 225.)])]
       ];
       egf,3.5,12.8,[],
       [egf_r,[Direction s],[]];
       egfr,3.5,11.,[],
        [egfr_l,[Direction n],[];
 	egfr_r,[Direction w;Scale 0.9],[];
-	egfr_Y68,[Direction s;Tag ("frag",3)],[Internal (egfr_Y68_p,[Direction se])];
-	egfr_Y48,[Direction e;Tag ("frag",4)],[Internal (egfr_Y48_p,[Direction e])]
+	egfr_Y68,[Direction s;Tag ("frag",3)],[Internal_state (egfr_Y68_p,[Direction se])];
+	egfr_Y48,[Direction e;Tag ("frag",4)],[Internal_state (egfr_Y48_p,[Direction e])]
        ];
       shc,-0.4,9.5,[Tag ("frag",2)],
       [shc_pi,[Direction n],[];
-       shc_Y7,[Direction s],[Internal (shc_Y7_p,[Direction sw])];];
+       shc_Y7,[Direction s],[Internal_state (shc_Y7_p,[Direction sw])];];
       shc,5.,13.,[Tag ("frag",4)],
       [shc_pi,[Direction s],[];
-       shc_Y7,[Direction n],[Internal (shc_Y7_u,[Direction ne]);Free [Direction nw]]];
+       shc_Y7,[Direction n],[Internal_state (shc_Y7_u,[Direction ne]);Free_site [Direction nw]]];
       grb2,1.8,8.,[Tag ("frag",2)],
       [grb2_a,[Direction w],[];
        grb2_b,[Direction e],[]];
       grb2,2.8,9.,[Tag ("frag",3)],
       [grb2_a,[Direction n],[];
-       grb2_b,[Direction w],[Free [Direction sw]]];
+       grb2_b,[Direction w],[Free_site [Direction sw]]];
       sos,4.5,8.,[Tag ("frag",2)],
       [sos_d,[Direction w],[]]]
 
@@ -227,8 +228,8 @@ let _ = dump "species_frag4.dot" ["frag",4;"flow",0]  species_with_flow
 
 (* SPECIES + CM *)
 
-let trans_sp = translate (-9.) 0. species 
-let trans_sp_with_flow = translate (-9.) 0. species_with_flow 
+let trans_sp = translate_graph {abscisse = -9.;ordinate =  0.} species 
+let trans_sp_with_flow = translate_graph {abscisse = -9.;ordinate =  0.} species_with_flow 
 let ag_cm,site_cm,_,ag_sp,site_sp,_,trans_sp_with_flow_with_cm = disjoint_union contact_map trans_sp_with_flow 
 let _ = dump "flow_annotated_species_cm.dot" [] trans_sp_with_flow_with_cm
 let _ = dump "flow_annotated_species_annotated_cm.dot" []
@@ -279,11 +280,11 @@ let lhs_domain,
     empty 
     [
       shc,-5.,13.5,[],
-      [shc_Y7,[Direction n],[Free [Direction n]];
+      [shc_Y7,[Direction n],[Free_site [Direction n]];
        shc_pi,[Direction se],[]];
       egfr,-3.,12.,[],
-      [egfr_r,[Direction s],[Bound [Direction s]];
-      egfr_Y48,[Direction (nw+.5.);Scale 1.01],[]]]
+      [egfr_r,[Direction s],[Bound_site [Direction s]];
+      egfr_Y48,[Direction (of_degree (to_degree nw+.5.));Scale 1.01],[]]]
 
 let lhs_domain = add_link_list [rule_egfr_Y48,rule_shc_pi] lhs_domain 
 
@@ -315,10 +316,10 @@ let _ = dump "flow_annotated_rule.dot" [] annotated_rule
 (* RULE + CM *) 
 
 let rule_plus_x x string proj_list add_flow = 
-  let _,sitel,_,_,_,_,all = disjoint_union x (translate (-3.) 0. rule) in 
+  let _,sitel,_,_,_,_,all = disjoint_union x (translate_graph {abscisse =  -3. ; ordinate =  0.} rule) in 
   let _ = dump ("flow_rule_"^string^".dot") [] all in 
   let _ = dump ("flow_rule_annotated_"^string^".dot") [] (add_flow sitel all) in 
-  let agl,sitel,_,agr,siter_,_,annotated_rule_x = disjoint_union x (translate (-.3.) 0. annotated_rule) in 
+  let agl,sitel,_,agr,siter_,_,annotated_rule_x = disjoint_union x (translate_graph {abscisse = -.3. ; ordinate =  0.} annotated_rule) in 
   let _ = dump ("flow_annotated_rule_"^string^".dot") [] annotated_rule_x  in 
   let proj_annotated_rule_x = 
     add_proj 
@@ -383,15 +384,15 @@ let short_species,
       egfr,1.,12.,[],
       [egfr_l,[Direction n],[];
        egfr_r,[Direction e;Scale 0.9],[];
-       egfr_Y68,[Direction s;Tag ("Exaa",0);Tag ("Exab",0);Tag("Exac",0)],[Free ([Direction sw]);Internal (egfr_Y68_u,[Direction (se)])];
-       egfr_Y48,[Direction w;Tag ("Exad",0);Tag ("Exac",0)],[Internal (egfr_Y48_p,[Direction 225.])]
+       egfr_Y68,[Direction s;Tag ("Exaa",0);Tag ("Exab",0);Tag("Exac",0)],[Free_site ([Direction sw]);Internal_state (egfr_Y68_u,[Direction (se)])];
+       egfr_Y48,[Direction w;Tag ("Exad",0);Tag ("Exac",0)],[Internal_state (egfr_Y48_p,[Direction (of_degree 225.)])]
       ];
       egf,3.5,13.8,[],
       [egf_r,[Direction s],[]];
       egfr,3.5,12.,[],
        [egfr_l,[Direction n],[];
 	egfr_r,[Direction w;Scale 0.9],[];
-	egfr_Y68,[Direction s;Tag ("Exaa",0);Tag ("Exad",0);Tag("Exac",0)],[Internal (egfr_Y68_p,[Direction se])];
+	egfr_Y68,[Direction s;Tag ("Exaa",0);Tag ("Exad",0);Tag("Exac",0)],[Internal_state (egfr_Y68_p,[Direction se])];
        ]]
 
 
@@ -446,10 +447,10 @@ let lhs_domain,
     empty 
     [
       shc,-5.,12.,[],
-      [shc_Y7,[Direction w],[Bound[Direction nw]];
+      [shc_Y7,[Direction w],[Bound_site[Direction nw]];
        shc_pi,[Direction e],[]];
       egfr,-3.,12.,[],
-      [egfr_r,[Direction e],[Bound [Direction se]];
+      [egfr_r,[Direction e],[Bound_site [Direction se]];
       egfr_Y48,[Direction w],[]]]
 
 let lhs_domain = add_link_list [cons_egfr_Y48,cons_shc_pi] lhs_domain 
@@ -499,15 +500,15 @@ let fragment,
     empty 
     [
       shc,-5.,12.,[],
-      [shc_Y7,[Direction w],[Bound[Direction nw]];
+      [shc_Y7,[Direction w],[Bound_site[Direction nw]];
        shc_pi,[Direction e],[]];
       egfr,-3.,12.,[],
-      [egfr_l,[Direction s],[Bound [Direction se]];
+      [egfr_l,[Direction s],[Bound_site  [Direction se]];
       egfr_Y48,[Direction w],[]]]
 
 let _,fragment = add_bound frag_egfr_l [Direction se] fragment 
 
-let agrule,siterule,staterule,agf,sitef,statef,prod =   disjoint_union rule (move_remanent_bellow 0. (translate 6. 0. fragment) lhs_domain)
+let agrule,siterule,staterule,agf,sitef,statef,prod =   disjoint_union rule (move_remanent_bellow 0. (translate_graph {abscisse = 6.;ordinate =  0.} fragment) lhs_domain)
 
 
 let prod1 = add_match
@@ -537,20 +538,20 @@ let short_species,
       egfr,1.,12.,[Tag ("species",1)],
       [egfr_l,[Direction n],[];
        egfr_r,[Direction e;Scale 0.9],[];
-       egfr_Y68,[Direction s;Tag ("Exaa",0);Tag ("Exab",0);Tag("Exac",0)],[Free ([Direction sw]);Internal (egfr_Y68_u,[Direction (se)])];
-       egfr_Y48,[Direction w;Tag ("Exad",0);Tag ("Exac",0)],[Internal (egfr_Y48_p,[Direction 225.])]
+       egfr_Y68,[Direction s;Tag ("Exaa",0);Tag ("Exab",0);Tag("Exac",0)],[Free_site ([Direction sw]);Internal_state (egfr_Y68_u,[Direction (se)])];
+       egfr_Y48,[Direction w;Tag ("Exad",0);Tag ("Exac",0)],[Internal_state (egfr_Y48_p,[Direction (of_degree 225.)])]
       ];
       egf,3.5,13.8,[],
       [egf_r,[Direction s],[]];
        egfr,3.5,12.,[],
        [egfr_l,[Direction n],[];
 	egfr_r,[Direction w;Scale 0.9],[];
-	egfr_Y68,[Direction e;Tag ("Exaa",0);Tag ("Exad",0);Tag("Exac",0)],[Internal (egfr_Y68_p,[Direction se])];
+	egfr_Y68,[Direction e;Tag ("Exaa",0);Tag ("Exad",0);Tag("Exac",0)],[Internal_state (egfr_Y68_p,[Direction se])];
 	egfr_Y48,[Direction s],[]
        ];
        shc,3.5,10.2,[],
       [shc_pi,[Direction n],[];
-       shc_Y7,[Direction s],[Internal (shc_Y7_u,[Direction se]);Free [Direction s]]]]
+       shc_Y7,[Direction s],[Internal_state (shc_Y7_u,[Direction se]);Free_site [Direction s]]]]
       
 
 
@@ -588,10 +589,10 @@ let lhs_domain,
     empty 
     [
       shc,-5.,12.,[],
-      [shc_Y7,[Direction w],[Free[Direction nw]];
+      [shc_Y7,[Direction w],[Free_site[Direction nw]];
        shc_pi,[Direction e],[]];
       egfr,-3.,12.,[],
-      [egfr_r,[Direction e],[Bound [Direction se]];
+      [egfr_r,[Direction e],[Bound_site [Direction se]];
       egfr_Y48,[Direction w],[]]]
 
 let lhs_domain = add_link_list [cons_egfr_Y48,cons_shc_pi] lhs_domain 

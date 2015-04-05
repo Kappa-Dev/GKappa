@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-04 17:07:53 feret>
+ * Last modification: Time-stamp: <2015-04-05 07:33:19 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -16,121 +16,119 @@
 (* More applications are coming soon (hopefully) *)
 
 
+open Geometry
+
 (*%module GKappa = 
 %  struct 
 *)
-    type tag = string 
-    type directive = 
-      Fontsize of int 
-    | Tag of tag * int  
-    | Radius of float 
-    | Width of float 
-    | Height of float 
-    | Direction of float  
-    | Shape of string 
-    | Set_scale of float 
-    | Scale of float 
-    | Color of string 
-    | FillColor of string 
-    | Comment of string 
-    type id = int 
-    type agent_type = id 
-    type site_type = agent_type * id 
-    type internal_state_type = agent_type * id * id 
-    type agent = id * id 
-    type site = id * id * id * (id * id)
-    type state = id * id * id 
-    type state_type = Free of directive list 
-		 | Bound of directive list
-		 | Internal of internal_state_type * directive list
-    type signature_vars = (agent_type * (site_type * internal_state_type list) list) list 
-    type signature = 
-      (string * directive list * 
-	 (string * directive list * 
-	    ((string * directive list) list)) list) list 
+type tag = string 
+type directive = 
+| Fontsize of int 
+| Tag of tag * int  
+| Radius of float 
+| Width of float 
+| Height of float 
+| Direction of angle
+| Shape of string 
+| Set_scale of float 
+| Scale of float 
+| Color of string 
+| FillColor of string 
+| Comment of string 
+type id = int 
+type agent_type = id 
+type site_type = agent_type * id 
+type internal_state_type = agent_type * id * id 
+type agent = id * id 
+type site = id * id * id * (id * id)
+type state = id * id * id 
+type state_type = 
+| Free_site of directive list 
+| Bound_site of directive list
+| Internal_state of internal_state_type * directive list
 
-    type graph_vars = (agent * (site * state list ) list ) list 
-    type graph = 
-      (agent_type *float*float*directive list* 
-	 (site_type * directive list* 
-	  state_type list) list) list
+type signature_vars = (agent_type * (site_type * internal_state_type list) list) list 
+type signature = 
+  (string * directive list * 
+     (string * directive list * 
+	((string * directive list) list)) list) list 
 
- 
-    let init_id = 0 
-    let succ x = x+1 
-
-    module TagMap = Data_structures.Make (struct type t = tag let compare = compare end)
-    module IntSet = Set.Make (struct type t = int let compare = compare end)
-    module IdMap = Data_structures.Make (struct type t = id let compare = compare end)
-    module Id2Map = Data_structures.Make (struct type t = id * id let compare = compare end)
-    module StringMap = Data_structures.Make (struct type t = string let compare = compare end)
-    module String2Map = Data_structures.Make (struct type t = string * string let compare = compare end) 
-
-    type config = 
-      { 
-	show_agent_names: bool;
-	show_site_names: bool;
-	show_state_names: bool;
-	show_free_symbols: bool;
-	color_agents: bool;
-	color_sites: bool;
-	color_states: bool ;
-	site_radius: float ;
-	agent_colors: string list ;
-	site_colors: string list ;
-	state_colors: string list ;
-	pi : float ;
-	free_width : float ;
-	free_height : float ;
-	bound_height : float ;
-	rule_length : float ;
-	rule_width: int;
-	edge_label_font:int;
-      }
-	
-    type intset = IntSet.t 
-    type node = 
-      { 
-	name: string ; 
-	label: string ; 
-	tags: intset TagMap.t ;
-	width: float ;
-	height: float ;
-	fontsize: int ; 
-	shape: string ; 
-	fillcolor:string ;
-	color:string;
-	abscisse: float ;
-	ordinate: float 
-      }
-	
-	
-	
- 
-    let n = 0. 
-    let ne = 45. 
-    let e = 90.
-    let se = 135. 
-    let s = 180.
-    let sw = 225. 
-    let w = 270. 
-    let nw = 315. 
-      
-    let dummy_node = 
-      { 
-	name = "" ;
-	label = "" ;
-	tags = TagMap.empty; 
-	width = 0.;
-	height = 0.;
-	fontsize = 0; 
-	fillcolor = "white";
-	color = "black";
-	abscisse = 0.;
-	ordinate = 0.;
-	shape = "ellipse";
-      }
-	
+type graph_vars = (agent * (site * state list ) list ) list 
+type graph = 
+  (agent_type *float*float*directive list* 
+     (site_type * directive list* 
+	state_type list) list) list
+    
+    
+let init_id = 0 
+let succ x = x+1 
+  
+module TagMap = Data_structures.Make (struct type t = tag let compare = compare end)
+module IntSet = Set.Make (struct type t = int let compare = compare end)
+module IdMap = Data_structures.Make (struct type t = id let compare = compare end)
+module Id2Map = Data_structures.Make (struct type t = id * id let compare = compare end)
+module StringMap = Data_structures.Make (struct type t = string let compare = compare end)
+module String2Map = Data_structures.Make (struct type t = string * string let compare = compare end) 
+  
+type config = 
+  { 
+    show_agent_names: bool;
+    show_site_names: bool;
+    show_state_names: bool;
+    show_free_symbols: bool;
+    color_agents: bool;
+    color_sites: bool;
+    color_states: bool ;
+    site_radius: float ;
+    agent_colors: string list ;
+    site_colors: string list ;
+    state_colors: string list ;
+    pi : float ;
+    free_width : float ;
+    free_height : float ;
+    bound_height : float ;
+    rule_length : float ;
+    rule_width: int;
+    edge_label_font:int;
+  }
+    
+type intset = IntSet.t 
+type node_kind = Agent | Site | State | Rule_source | Rule_target | Free of int | Bound | Dummy 
+type node = 
+  { 
+    label: string ; 
+    name: string ; 
+    kind: node_kind ;
+    tags: intset TagMap.t ;
+    width: float ;
+    height: float ;
+    fontsize: int ; 
+    shape: string ; 
+    fillcolor:string ;
+    color:string;
+    coordinate: point;
+    orientation: angle;
+    scale_factor: float;
+  }
+    
+    
+let dummy_node = 
+  { 
+    kind = Dummy ;
+    name = "" ;
+    label = "" ;
+    tags = TagMap.empty; 
+    width = 0.;
+    height = 0.;
+    fontsize = 0; 
+    fillcolor = "white";
+    color = "black";
+    coordinate = origin;
+    shape = "ellipse";
+    scale_factor=1.;
+    orientation=n;
+  }
+    
     let dummy_sig_agent_node = 
       { 
 	dummy_node with
@@ -159,7 +157,7 @@
     type sig_state = 
       { 
 	sig_state_node: node;
-	sig_state_direction: float ;
+	sig_state_direction: angle ;
 	sig_state_scale_factor: float ;
       }
 	
@@ -168,7 +166,7 @@
     let init_sig_state = 
       {
 	sig_state_node = dummy_sig_state_node ;
-	sig_state_direction = 0. ;
+	sig_state_direction = n ;
 	sig_state_scale_factor = 1.;
       }
 	
@@ -177,7 +175,7 @@
 	sig_site_node: node ;
 	sig_site_states: sig_state IdMap.t ; 
 	sig_site_n_states: int ;  
-	sig_site_direction: float ;
+	sig_site_direction: angle ;
 	sig_site_scale_factor: float ;
       }
 	
@@ -185,7 +183,7 @@
       { sig_site_node = dummy_sig_site_node ;
 	sig_site_states = IdMap.empty ; 
 	sig_site_n_states = 0; 
-	sig_site_direction = 0.; 
+	sig_site_direction = n ; 
 	sig_site_scale_factor = 1.05}
 	
     type sig_agent = 
@@ -270,7 +268,7 @@
       { 
 	site_node: node;
 	site_states: state_node IdMap.t ;
-	site_direction: float ;
+	site_direction: angle ;
       }
 	
     type agent_node = 
@@ -290,7 +288,7 @@
       {
 	site_node= dummy_sig_site_node; 
 	site_states= IdMap.empty;
-	site_direction = 0.;
+	site_direction = n;
       }
 	
     let dummy_state = dummy_sig_state_node
@@ -353,7 +351,7 @@
       else aux n list 
 	
     let angle_of_index i = 
-      let all_angles = [45.;135.;225.;315.] in 
+      let all_angles = [ne;se;sw;nw] in 
       let update l = 
 	match l 
 	with [] | [_]-> l,l
@@ -361,12 +359,14 @@
 	  let rec aux list (res,res2) = 
 	    match list 
 	    with a::b::c -> 
-	      let x = (a+.b)/.2. in 
+	      let x = bissec a b in 
 	      aux (b::c) (x::a::res,x::res2)
-	| [b] -> 
-	  let x = (init+.b)/.2. in 
-	  List.rev (b::x::res),List.rev (x::res2 )
-	| [] -> (Printf.fprintf stdout "418\n";raise Exit)
+	    | [b] -> 
+	      let x = bissec init b in 
+	      List.rev (b::x::res),List.rev (x::res2 )
+	    | [] -> 
+	      let _ = Printf.fprintf stderr "Warning: no angle are provided in the config filte\n" in 
+	      aux [n] ([],[])
 	  in 
 	  aux l ([],[])
       in 
@@ -584,15 +584,6 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
     let name_of_bound agent_id agent_node site_id site state_id = 
       "Bound_"^(agent_node.label)^"_"^(string_of_int agent_id)^"_"^(site.label)^"_"^string_of_int site_id^"_"^(string_of_int state_id)^"_"
 	
-    let point_on_countour_ext remanent node direction scale delta = 
-      let angle = (remanent.config.pi *. direction)/.180. in 
-      (node.abscisse +. (sin angle) *. (node.width *. 0.5 *. scale +. delta),
-       node.ordinate +. (cos angle) *. (node.height *. 0.5 *. scale +. delta))
-	
-    let point_on_countour remanent node direction scale = 
-      point_on_countour_ext remanent node direction scale 0.
-	
-	
     let add_tag s i map = 
       let old = 
 	match 
@@ -617,8 +608,11 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	    { 
 	      agent_type_info.sig_agent_node 
 	      with 
-		abscisse = abs ; 
-		ordinate = ord ; 
+		coordinate = 
+		{
+		  abscisse = abs ; 
+		  ordinate = ord ; 
+		}
 	    }
 	in 
 	let rec parse_attributes att node =
@@ -682,7 +676,7 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	      let node = 
 		{ site_type_info.sig_site_node with tags = agent.agent_node.tags} 
 	      in 
-	      let direction = site_type_info.sig_site_direction in 
+	      let direction = site_type_info.sig_site_direction  in 
 	      let scale = site_type_info.sig_site_scale_factor in 
 	      let node_id = remanent.nnodes+1 in 
 	      let remanent = {remanent with nnodes = node_id} in 
@@ -712,15 +706,11 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 		  end
 	      in 
 	      let node,direction,scale = parse_attributes attributes (node,direction,scale) in 
-	      let abs,ord = point_on_countour remanent agent.agent_node direction scale in 
-	      let node = 
-		{ 
-		  node with
-		    abscisse = abs ; 
-		    ordinate = ord ; 
-	      }
-	      in 
-	      let node = { node with name = name_of_site agent_id agent.agent_node node_id node} in
+	      let site_center = point_on_ellipse agent.agent_node.coordinate agent.agent_node.width agent.agent_node.height direction scale in 
+	      let node = { node 
+			   with 
+			     coordinate = site_center ; 
+			     name = name_of_site agent_id agent.agent_node node_id node} in
 	      let site = {dummy_site with site_node = node ; site_direction = direction} in 
 	      let agent = {agent with agent_sites = IdMap.add  node_id site agent.agent_sites} in 
 	      Some (agent_id,agent_type_id,node_id,site_type),
@@ -795,12 +785,17 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	    end
       in 
       let node,direction,scale = parse_attributes attributes (node,direction,scale) in 
-      let abs,ord = point_on_countour_ext remanent site.site_node direction scale (node.width/.2.)  in 
+      let state_center = 
+	point_on_ellipse_ext 
+	  site.site_node.coordinate 
+	  site.site_node.width 
+	  site.site_node.height 
+	  direction
+	  scale 
+	  (node.width/.2.)  in 
       let node = 
 	{ 
-	  node with 
-	    abscisse = abs ; 
-	    ordinate = ord ; 
+	  node with coordinate = state_center 
 	}
       in 
       let site = {site with site_states = IdMap.add  node_id (Internal_node node) site.site_states} in 
@@ -941,12 +936,12 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	    end
       in 
       let tags,direction,width,height = parse_attributes attributes (tags,direction,remanent.config.free_width,remanent.config.free_height) in 
-      let abs1,ord1 = point_on_countour_ext remanent site.site_node direction 1. height in 
-      let node1 = {dummy_node with color = "white" ; (*id = node_id1 ;*) abscisse = abs1 ; ordinate = ord1 ; tags = tags } in 
-      let abs2,ord2 = point_on_countour_ext remanent node1  (direction+.90.) 1. (width/.2.)  in 
-      let abs3,ord3 = point_on_countour_ext remanent node1 (direction-.90.) 1. (width/.2.)   in 
-      let node2 = {dummy_node with color = "white" ; (*id = node_id2 ;*) abscisse = abs2 ; ordinate = ord2 ; tags = tags} in 
-      let node3 = {dummy_node with color = "white" ; (*id = node_id3 ;*) abscisse = abs3 ; ordinate = ord3 ; tags = tags } in 
+      let free_center1 = point_on_ellipse_ext site.site_node.coordinate site.site_node.width site.site_node.height direction 1. height in 
+      let node1 = {dummy_node with color = "white" ; (*id = node_id1 ;*) coordinate = free_center1 ; tags = tags } in 
+      let free_center2 = point_on_ellipse_ext node1.coordinate node1.width node1.height (clockwise direction 90.) 1. (width/.2.) in 
+      let free_center3 = point_on_ellipse_ext node1.coordinate node1.width node1.height (anticlockwise direction 90.)  1. (width/.2.) in 
+      let node2 = {dummy_node with color = "white" ; coordinate = free_center2 ; tags = tags} in 
+      let node3 = {dummy_node with color = "white" ; (*id = node_id3 ;*) coordinate = free_center3 ;  tags = tags } in 
       let site = 
 	{site 
 	 with 
@@ -1003,8 +998,8 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	    end
       in 
       let color,tags,direction,height = parse_attributes attributes ("black",tags,direction,remanent.config.bound_height) in 
-      let abs,ord = point_on_countour_ext remanent site.site_node direction 1. height in 
-      let node = {dummy_node with color = color ;  (*id = node_id ;*) abscisse = abs ; ordinate = ord ; tags = tags } in 
+      let bound_center = point_on_ellipse_ext site.site_node.coordinate site.site_node.width site.site_node.height direction 1. height in 
+      let node = {dummy_node with color = color ;  (*id = node_id ;*) coordinate = bound_center ; tags = tags } in 
       let site = 
 	{site 
 	 with 
@@ -1060,7 +1055,7 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	
     let dump_node log filter filter_label filter_color node remanent = 
       Printf.fprintf log 
-	"fixedsize=true,label = \"%s\",\nfontsize=%i,\npos=\"%f,%f!\",\nwidth=%f,\nheight=%f,\nshape=\"%s\",\nstyle=filled,\nfillcolor=%s,\ncolor=%s\n" (filter_label node.label) node.fontsize node.abscisse node.ordinate node.width node.height node.shape (filter_color node.fillcolor) node.color
+	"fixedsize=true,label = \"%s\",\nfontsize=%i,\npos=\"%f,%f!\",\nwidth=%f,\nheight=%f,\nshape=\"%s\",\nstyle=filled,\nfillcolor=%s,\ncolor=%s\n" (filter_label node.label) node.fontsize node.coordinate.abscisse node.coordinate.ordinate node.width node.height node.shape (filter_color node.fillcolor) node.color
 	
     let dump_int_state chan filter remanent agent_id agent site_id site state_id state =
       let tags = state.tags in 
@@ -1210,9 +1205,9 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
     let new_state agent site (remanent,state_list) state =       let id,remanent = 
 	match state
 	with 
-	  Free op  -> add_free site op remanent
-	| Bound op -> add_bound site op remanent 
-	| Internal (op1,op2) -> add_internal_state site op1 op2  remanent 
+	  Free_site op  -> add_free site op remanent
+	| Bound_site op -> add_bound site op remanent 
+	| Internal_state (op1,op2) -> add_internal_state site op1 op2  remanent 
       in 
       remanent,id::state_list 
 	
@@ -1411,7 +1406,7 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
       in 
       fold_node 
 	(fun node pos ->
-	  let x,y=node.abscisse,node.ordinate in 
+	  let x,y=node.coordinate.abscisse,node.coordinate.ordinate in 
 	  let coords =
 	    x-.node.width,x+.node.width,y-.node.height,y+.node.height
 	  in 
@@ -1426,14 +1421,15 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
       with None -> 0.,0.
       | Some (x,y,z,t) -> y-.x,t-.z
 	
-
     let rotate x y  angle remanent = remanent 
-    let translate x y remanent = 
+    let translate_graph vector remanent = 
       map_node 
 	(fun node -> 
-	  {node with abscisse = node.abscisse +. x;
-	             ordinate = node.ordinate +. y}
-	) (fun x -> x) remanent 
+	  {node with 
+	    coordinate = translate node.coordinate vector})
+	(fun x -> x) 
+	remanent 
+   
     let sym_h y remanent = remanent 
     let sym_v x remanent = remanent 
     let sym x y remanent = remanent 
@@ -1445,8 +1441,11 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	let axe = (y_max +. y_min) /. 2. in 
 	map_node 
 	  (fun node -> 
-	    {node with ordinate = 2.*.axe -. node.ordinate})
-	  (fun angle -> 180. -. angle)
+	    {node with 
+	      coordinate = 
+		{node.coordinate 
+		 with ordinate = 2.*.axe -. node.coordinate.ordinate}})
+	  (fun angle -> of_degree (180. -. (to_degree angle)))
 	  remanent 
     let vertical_swap remanent = 
       match corners remanent 
@@ -1456,8 +1455,11 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	let axe = (x_max +. x_min) /. 2. in 
 	map_node 
 	  (fun node -> 
-	    {node with abscisse = 2.*.axe -. node.abscisse})
-	  (fun angle -> 360. -. angle)
+	    {node with 
+	      coordinate = 
+		{node.coordinate 
+		 with abscisse = 2.*.axe -. node.coordinate.abscisse}})
+	  (fun angle -> of_degree (360. -. (to_degree angle)))
 	  remanent 
 	  
     let fuse fold2map addmap f map1 map2 = 
@@ -1576,14 +1578,14 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	with None, _ -> remanent
 	| _,None -> remanent
 	| Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') -> 
-	  translate (xmax'-.xmin+.delta) 0. remanent 
+	  translate_graph {abscisse = xmax'-.xmin+.delta ; ordinate =  0.} remanent 
 	    
     let move_remanent_left_to delta remanent remanent' = 
       	match corners remanent,corners remanent'
 	with None, _ -> remanent
 	| _,None -> remanent
 	| Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') -> 
-	  translate (xmin'-.xmax-.delta) 0. remanent 
+	  translate_graph {abscisse = xmin'-.xmax-.delta ; ordinate = 0.} remanent 
 
 
     let move_remanent_above delta remanent remanent' = 
@@ -1591,14 +1593,14 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	with None, _ -> remanent
 	| _,None -> remanent
 	| Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') -> 
-	  translate 0. (ymax'-.ymin+.delta) remanent 
+	  translate_graph { abscisse = 0.; ordinate =  ymax'-.ymin+.delta} remanent 
 	    
     let move_remanent_bellow delta remanent remanent' = 
       	match corners remanent,corners remanent'
 	with None, _ -> remanent
 	| _,None -> remanent
 	| Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') -> 
-	  translate 0. (ymin'-.ymax-.delta) remanent 
+	  translate_graph { abscisse = 0. ; ordinate = ymin'-.ymax-.delta} remanent 
 	    
     let init config = 
       let remanent = init config in 
@@ -1623,11 +1625,11 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	  | Some i,s -> fst i,s
 	  
     let add_rule x y directives remanent = 
-        let rec parse_attributes att (comment,width,size,direction,tags,color) = 
+      let rec parse_attributes att (comment,(width:float),size,(direction:angle),tags,color) = 
 	match 
 	  att
 	with 
-	| [] -> comment,width,size,direction,tags,color 
+	| [] -> comment,width,size,(direction:angle),tags,color 
 	| t::q -> 
 	  parse_attributes q 
 	    begin
@@ -1637,9 +1639,14 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	      | Comment s -> s,width,size,direction,tags,color
 	      | Color s -> comment,width,size,direction,tags,s 
 	      | FillColor s -> comment,width,size,direction,tags,color 
-	      | Fontsize i -> comment,direction,size,direction,tags,color
+	      | Fontsize i -> comment,width,size,direction,tags,color
 	      | Tag (s,i) -> comment,width,size,direction,add_tag s i tags,color
-	      | Width f -> comment,f,size,direction,tags,color
+	      | Width f -> 
+comment,
+f,
+size,
+ direction,
+tags,color
 	      | Height f -> comment,width,f,direction,tags,color
 	      | Direction f -> comment,width,size,f,tags,color
 	      | Shape s -> comment,width,size,direction,tags,color
@@ -1647,38 +1654,42 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	      | Set_scale f -> comment,width,size,direction,tags,color
 	      | Scale f ->comment,width,size,direction,tags,color
 	    end
-	in 
-	let comment,width,size,direction,tags,color = 
-	  parse_attributes 
-	    directives 
-	    ("",float_of_int (remanent.config.rule_width),remanent.config.rule_length,e,TagMap.empty,"black")
-	in 
-	let directives = 
-	  filter_out_direction directives 
-	in 
-	    
-	let width = int_of_float width in 
-	let angle = (remanent.config.pi *. direction)/.180. in 
-     	let x1 = x +. size *. (sin angle) /. 2. in 
-	let y1 = y +. size *. (cos angle) /. 2. in 
-	let x2 = x -. size *. (sin angle) /. 2. in 
-	let y2 = y -. size *. (cos angle) /. 2. in 
-	let node_id1,remanent = add_dummy_agent "add_rule" x1 y1 directives remanent in 
-	let node_id2,remanent = add_dummy_agent "add_rule" x2 y2 directives remanent in 
-	match 
-	  IdMap.find_option node_id1 remanent.nodes,
-	  IdMap.find_option node_id2 remanent.nodes
-	with 
-	| None,_ | _,None -> 
-	  let _ = Printf.fprintf stderr "ERROR, cannot create a rule, the just created nodes do not exist\n" in 
-	  remanent 
-	  | Some node1,Some node2
-	    -> 
-	    add_link 
-	      node_id2 
-	      node_id1 
-	      {rule with width = width ; comment = comment ;
-		color = color ; edges_tag = tags ; node1 = node2 ; node2 = node1 } remanent 
+      in 
+      let comment,width,size,direction,tags,color = 
+	parse_attributes 
+	  directives 
+	  ("",
+	   float_of_int (remanent.config.rule_width),
+	   remanent.config.rule_length,
+	   e,
+	   TagMap.empty,"black")
+      in 
+      let directives = 
+	filter_out_direction directives 
+      in 
+      
+      let width = int_of_float width in 
+      let angle = direction.radius in 
+      let x1 = x +. size *. (sin angle) /. 2. in 
+      let y1 = y +. size *. (cos angle) /. 2. in 
+      let x2 = x -. size *. (sin angle) /. 2. in 
+      let y2 = y -. size *. (cos angle) /. 2. in 
+      let node_id1,remanent = add_dummy_agent "add_rule" x1 y1 directives remanent in 
+      let node_id2,remanent = add_dummy_agent "add_rule" x2 y2 directives remanent in 
+      match 
+	IdMap.find_option node_id1 remanent.nodes,
+	IdMap.find_option node_id2 remanent.nodes
+      with 
+      | None,_ | _,None -> 
+	let _ = Printf.fprintf stderr "ERROR, cannot create a rule, the just created nodes do not exist\n" in 
+	remanent 
+      | Some node1,Some node2
+	-> 
+	add_link 
+	  node_id2 
+	  node_id1 
+	  {rule with width = width ; comment = comment ;
+	    color = color ; edges_tag = tags ; node1 = node2 ; node2 = node1 } remanent 
 	  
     let cross remanent = 
       let comment = "" in 
@@ -1719,8 +1730,8 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 		    color = "red" ; edges_tag = TagMap.empty ; node1 = node2 ; node2 = node1 } remanent )
 	| _ -> 
 	  let _ = Printf.fprintf stderr "ERROR, cannot create a cross, the just created nodes do not exist\n" in remanent 
-	    
-
+													      
+													      
     let tag_all_nodes t i remanent = 
       let remanent = 
 	map_node 
@@ -1730,10 +1741,9 @@ agent_type: %i site_type: %i nsites:%i \n" agent_id site_id (agent_type.sig_agen
 	  remanent 
       in 
       {
-      remanent with 
-	edge_list = 
+	remanent with 
+	  edge_list = 
 	  Id2Map.map (List.map (fun x -> {x with edges_tag = add_tag t i x.edges_tag})) remanent.edge_list
       }
 
-(*   end:GKappa)*)
     
