@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-04-05 feret>
- * Last modification: Time-stamp: <2015-04-05 07:26:02 feret>
+ * Last modification: Time-stamp: <2015-04-06 10:35:34 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -81,3 +81,47 @@ let anticlockwise angle1 angle2 =
     ordinate = x.ordinate +. y.ordinate
    }
      
+
+let n_modulo list n = 
+  let rec aux n l = 
+    match l 
+    with [] -> aux n list 
+    | t::q -> 
+      if n=1 then t else aux (n-1) q 
+  in 
+  if n<1 || list = [] then 
+    (let _ = Printf.fprintf stderr "403\n" in 
+     raise Exit)
+  else aux n list 
+    
+let angle_of_index i = 
+  let all_angles = [ne;se;sw;nw] in 
+  let update l = 
+    match l 
+    with [] | [_]-> l,l
+    | init::_ -> 
+      let rec aux list (res,res2) = 
+	match list 
+	with a::b::c -> 
+	      let x = bissec a b in 
+	      aux (b::c) (x::a::res,x::res2)
+	| [b] -> 
+	  let x = bissec init b in 
+	  List.rev (b::x::res),List.rev (x::res2 )
+	| [] -> 
+	  let _ = Printf.fprintf stderr "Warning: no angle are provided in the config filte\n" in 
+	  aux [n] ([],[])
+      in 
+      aux l ([],[])
+  in 
+  let current_angles = all_angles in 
+  let rec aux k all current = 
+    match current 
+    with []  -> 
+      let all,current = update all in 
+      aux k all current
+    | t::q -> 
+      if k=1 then t
+      else aux (k-1) all q 
+  in 
+  aux i all_angles current_angles

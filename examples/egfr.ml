@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-05 07:43:06 feret>
+ * Last modification: Time-stamp: <2015-04-07 08:34:35 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -48,7 +48,7 @@ let remanent,
        egfr_r,[Direction (of_degree 150.);Scale 1.2],
        [Free_site [Direction s]];
        egfr_Y68,[Direction (of_degree 205.);Scale 1.2],
-       [Free_site [Direction sw];
+       [Free_site [Direction (of_degree (to_degree sw-.10.))];
 	Internal_state (egfr_Y68_u,[Direction se]);
 	Internal_state (egfr_Y68_p,[Direction (of_degree (to_degree se+.20.))])];
        egfr_Y48,[Direction (of_degree 330.);Scale 1.2],
@@ -469,7 +469,7 @@ let rule = add_rule  (-.1.)  12.  [Direction e] rule
 
 let _ = dump "flow_cons_rule.dot" ["contact_map",0;"flow",0]  rule 
 
-let (Some cons_egfr_l),fragment = add_site cons_egfr egfr_l [Direction s] lhs_domain 
+let cons_egfr_l,fragment = add_site cons_egfr egfr_l [Direction s] lhs_domain 
 let _,fragment = add_bound cons_egfr_l [Direction se] fragment 
 
 let _ = dump "flow_cons.dot" ["contact_map",0;"flow",0]  fragment 
@@ -515,9 +515,9 @@ let prod1 = add_match
   [ agrule (agr cons_egfr), agf frag_egfr;
     agrule (agr cons_shc),agf frag_shc]
       prod
-let Some st,prod2 = add_site (agrule (agr cons_egfr)) egfr_l [Direction s;Color "red"] prod1 
+let st,prod2 = add_site (agrule (agr cons_egfr)) egfr_l [Direction s;Color "red"] prod1 
 let _,prod2 = add_bound st [Color "red"] prod2 
-let Some st,prod2 = add_site (agrule (agl cons_egfr)) egfr_l [Direction s;Color "red"] prod2
+let st,prod2 = add_site (agrule (agl cons_egfr)) egfr_l [Direction s;Color "red"] prod2
 let _,prod2 = add_bound st [Color "red"] prod2 
 let _ = dump "flow_prod_match.dot" ["contact_map",0;"flow",0]  prod1
 let _ = dump "flow_prod_overlap.dot" ["contact_map",0;"flow",0]  prod2

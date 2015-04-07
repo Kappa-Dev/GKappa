@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-05 07:46:02 feret>
+ * Last modification: Time-stamp: <2015-04-06 16:33:27 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -81,31 +81,31 @@ let _ = dump "hier_contact_map_annotated.dot" []  annotated_contact_map
 let _ = dump "hier_contact_map_d_annotated.dot" ["site",1]  annotated_contact_map 
 let _ = dump "hier_contact_map_g_annotated.dot" ["site",0]  annotated_contact_map
 
-let Some p,nnn = add_agent p 0. 0. [] remanent
-let Some sg,unn = add_site p g [] nnn
+let p,nnn = add_agent p 0. 0. [] remanent
+let sg,unn = add_site p g [] nnn
 let _,pnn = add_internal_state sg gp [Direction sw;Scale 1.2] unn
 let _,unn = add_internal_state sg gu [Direction sw;Scale 1.2] unn 
-let Some sc,nun = add_site p c [] nnn
+let sc,nun = add_site p c [] nnn
 let _,npn = add_internal_state sc cp [Direction n] nun
 let _,nun = add_internal_state sc cu [Direction n] nun 
-let Some sd,nnu = add_site p d [] nnn
+let sd,nnu = add_site p d [] nnn
 let _,nnp = add_internal_state sd dp [Direction se;Scale 1.2] nnu
 let _,nnu = add_internal_state sd du [Direction se;Scale 1.2] nnu
-let Some sg,spn = add_site p g [] npn 
+let sg,spn = add_site p g [] npn 
 let _,ppn = add_internal_state sg gp [Direction sw;Scale 1.2] spn
 let _,upn = add_internal_state sg gu [Direction sw;Scale 1.2] spn 
-let Some sd,nps = add_site p d [] npn 
+let sd,nps = add_site p d [] npn 
 let _,npp = add_internal_state sd dp [Direction se] nps
 let _,npu = add_internal_state sd du [Direction se] nps 
-let Some sg,spu = add_site p g [] npu 
+let sg,spu = add_site p g [] npu 
 let _,ppu = add_internal_state sg gp [Direction sw] spu
 let _,upu = add_internal_state sg gu [Direction sw] spu 
-let Some sg,spp = add_site p g [] npp 
+let sg,spp = add_site p g [] npp 
 let _,ppp = add_internal_state sg gp [Direction sw] spp
 let _,upp = add_internal_state sg gu [Direction sw] spp 
-let Some sg,sun = add_site p g [] nun 
+let sg,sun = add_site p g [] nun 
 let _,uun = add_internal_state sg gu [Direction sw] sun 
-let Some sd,uus = add_site p d [] uun
+let sd,uus = add_site p d [] uun
 let _,uuu = add_internal_state sd du [Direction se] uus
 
 

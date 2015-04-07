@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation: March, the 28th of 2015
- * Last modification: April, the 2nd of 2015
+ * Last modification: Time-stamp: <2015-04-07 08:32:41 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -37,6 +37,7 @@ type config =
     bound_height : float ; 
     rule_length: float ;
     rule_width: int;
+    cross_width: int;
     edge_label_font: int;
   }
 
@@ -59,7 +60,6 @@ type id
 type agent_type
 type site_type
 type internal_state_type
-type node 
 type state_type = 
 | Free_site of directive list 
 | Bound_site of directive list
@@ -86,8 +86,8 @@ val add_internal_state_type: site_type -> string -> directive list -> remanent_s
   
 val add_in_signature: remanent_state -> signature -> remanent_state * signature_vars 
 val add_in_graph: remanent_state -> graph -> remanent_state * graph_vars 
-val add_agent: agent_type -> float -> float -> directive list -> remanent_state -> agent option * remanent_state 
-val add_site: agent -> site_type  -> directive list -> remanent_state -> site option * remanent_state 
+val add_agent: agent_type -> float -> float -> directive list -> remanent_state -> agent * remanent_state 
+val add_site: agent -> site_type  -> directive list -> remanent_state -> site * remanent_state 
 val add_internal_state: site -> internal_state_type -> directive list -> remanent_state -> state * remanent_state 
 val add_free: site -> directive list -> remanent_state -> state * remanent_state 
 val add_bound: site -> directive list -> remanent_state -> state * remanent_state 
