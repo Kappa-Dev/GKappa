@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-07 08:52:00 feret>
+ * Last modification: Time-stamp: <2015-04-08 07:56:16 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -58,7 +58,10 @@ type graph =
   (agent_type *float*float*directive list* 
      (site_type * directive list* 
 	state_type list) list) list
+
+type valuation = graph_vars * (site * state list) list * state list 
     
+type lift = (agent -> agent) * (site -> site) * (state -> state)
     
 let init_id = 0 
 let succ x = x+1 
@@ -94,6 +97,7 @@ type config =
     rule_width: int;
     cross_width: int;
     edge_label_font:int;
+    rule_margin: float;
   }
     
 type intset = IntSet.t 
@@ -175,6 +179,7 @@ let dummy_item =
     shape = "ellipse";
     scale_factor=1.;
     orientation=n;
+    
   }
     
 let dummy_agent_type =
@@ -281,7 +286,7 @@ let init config =
     nsig_items = init_id ;
   }
 
- let add_tag s i map = 
+let add_tag s i map = 
       let old = 
 	match 
 	  TagMap.find_option s map 
@@ -379,6 +384,15 @@ let p_site  x =
   | Tag _ | Set_scale _ | Scale _ | Radius _ | Shape _ | Direction _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true 
 
 let p_state = p_site
+
+let lift_agent (ag,_,_) = ag 
+let lift_site (_,site,_) = site
+let lift_state (_,_,state) = state 
+let compose f g = (fun x -> f(g x))
+let compose_lift (ag1,site1,state1) (ag2,site2,state2) = 
+  (compose ag1 ag2,
+   compose site1 site2,
+   compose state1 state2)
 
 let add_agent_type name attributes remanent = 
   let f id item = 
@@ -987,10 +1001,10 @@ let fuse remanent remanent' =
 let disjoint_union remanent remanent' = 
   let delta = remanent.nitems in 
   let (f,g,h,remanent') = add_to_id delta remanent' in 
-  (fun x->x),
+  ((fun x->x),
   (fun y->y),
-  (fun z->z),
-  f,g,h,
+  (fun z->z)),
+  (f,g,h),
   fuse remanent remanent'
     
     
@@ -1005,7 +1019,8 @@ let add_proj l remanent =
     
 let add_emb list remanent = remanent
 let disjoint_union_with_match remanent remanent = 
-  (fun x -> x),(fun x -> x),(fun x -> x),(fun x->x),(fun x->x),(fun x->x),remanent 
+  ((fun x -> x),(fun x -> x),(fun x -> x)),
+  ((fun x->x),(fun x->x),(fun x->x)),remanent 
     
 let move_remanent_right_to delta remanent remanent' = 
   match corners remanent,corners remanent'
@@ -1122,3 +1137,47 @@ let tag_all_nodes t i remanent =
       (fun x -> x)
       remanent 
   
+let lift_list2 fst snd l = 
+  List.rev_map 
+    (fun (s,l) -> (fst s,snd l))
+    (List.rev l)
+let lift_state_list sigma l = 
+  List.rev_map 
+    (fun x -> lift_state sigma x)
+    (List.rev l)
+let lift_site_list sigma = 
+  lift_list2 (lift_site sigma) (lift_state_list sigma) 
+let lift_agent_list sigma = 
+  lift_list2 (lift_agent sigma) (lift_site_list sigma)
+
+let build_rule domain extend_lhs extend_rhs directives = 
+  let node = {dummy_item with orientation = e ; width = float_of_int (domain.config.rule_width)} in 
+  let node = parse_attributes (fun _ -> true) "" directives node in 
+  let angle = sample_angle node.orientation in 
+  let (l1,l2,l3),lhs = extend_lhs domain in 
+  let (r1,r2,r3),rhs = extend_rhs domain in 
+  let xm,xM,ym,yM = 
+    match 
+      corners lhs
+    with 
+      Some (xm,xM,ym,yM) -> xm,xM,ym,yM 
+    | None -> 0.,0.,0.,0.
+  in 
+  let xm',xM',ym',yM' = 
+    match 
+      corners rhs
+    with 
+      Some (xm,xM,ym,yM) -> xm,xM,ym,yM 
+    | None -> 0.,0.,0.,0.
+  in 
+  let distance = (1.+.domain.config.rule_margin*.2.)*. node.width in
+  let rulex,ruley,deltax,deltay = compute_padding (xm,xM,ym,yM) (xm',xM',ym',yM') angle distance in 
+  let sigmal,sigmar,rule = disjoint_union lhs (translate_graph {abscisse=deltax;ordinate=deltay} rhs) in 
+  let rule = add_rule rulex ruley directives rule in 
+  sigmal,
+  sigmar,
+  (List.concat [lift_agent_list sigmal l1;lift_agent_list sigmar r1],
+  List.concat [lift_site_list sigmal l2;lift_site_list sigmar r2],
+  List.concat [lift_state_list sigmal l3;lift_state_list sigmar r3]),
+   rule 
+   

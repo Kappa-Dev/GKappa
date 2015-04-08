@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-04-05 feret>
- * Last modification: Time-stamp: <2015-04-06 10:35:34 feret>
+ * Last modification: Time-stamp: <2015-04-08 07:59:31 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -45,6 +45,7 @@ let angle_of_decl x =
 
 let to_degree x = x.degree 
 let of_degree x = angle_of_decl (Degree x)
+let to_radius x = x.radius 
       
 let n =  of_degree 0.
 let ne = of_degree 45.
@@ -64,6 +65,17 @@ let clockwise angle1 angle2 =
 let anticlockwise angle1 angle2 = 
   angle_of_decl (Degree ((angle1.degree -. angle2)))
 
+let rec mod_angle x = 
+  if x<0. then mod_angle (x+.360.)
+  else if x>360. then mod_angle (x-.360.)
+  else x 
+
+let sample_angle x = 
+  let angle = mod_angle (to_degree x) in 
+  let rec scan x rep = 
+    if angle < x then of_degree rep
+    else scan (x+.45.) (rep+.45.)
+  in scan 23. 0. 
 
  let point_on_ellipse_ext center width height  direction scale delta = 
       let angle = direction.radius in 
@@ -125,3 +137,43 @@ let angle_of_index i =
       else aux (k-1) all q 
   in 
   aux i all_angles current_angles
+
+let abs x = 
+  if compare x 0. < 0  then -.x else x 
+
+let compute_padding (xm,xM,ym,yM) (xm',xM',ym',yM') angle distance = 
+  let distancex = abs (sin (to_radius angle)*. distance) in 
+  let distancey = abs (cos (to_radius angle)*.distance) in 
+  let cx,deltax = 
+    if angle = n || angle = s 
+    then 
+      (xm+.xM)/.2.,
+      (xm+.xM)/.2.-.(xm'+.xM')/.2.
+    else if angle = ne || angle = e || angle = se 
+    then 
+      xM+.distancex/.2.,
+      xM+.distancex-.xm'
+    else if angle = sw || angle = w || angle = se 
+    then 
+      xm-.distancex/.2.,
+      xm-.distancex+.xM' 
+    else 
+      0.,0.
+  in 
+  let cy,deltay = 
+    if angle = e || angle = w
+    then 
+      (ym+.yM)/.2.,
+      (ym+.yM)/.2.-.(ym'+.yM')/.2.
+    else if angle = ne || angle = n || angle = nw 
+    then 
+      yM+.distancey/.2.,
+      yM+.distancey-.ym'
+    else if angle = sw || angle = s || angle = se 
+    then 
+      ym-.distancey/.2.,
+      ym-.distancey-.yM' 
+    else 
+      0.,0.
+  in 
+  cx,cy,deltax,deltay

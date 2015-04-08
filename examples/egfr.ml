@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-07 08:34:35 feret>
+ * Last modification: Time-stamp: <2015-04-08 07:40:54 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -230,26 +230,28 @@ let _ = dump "species_frag4.dot" ["frag",4;"flow",0]  species_with_flow
 
 let trans_sp = translate_graph {abscisse = -9.;ordinate =  0.} species 
 let trans_sp_with_flow = translate_graph {abscisse = -9.;ordinate =  0.} species_with_flow 
-let ag_cm,site_cm,_,ag_sp,site_sp,_,trans_sp_with_flow_with_cm = disjoint_union contact_map trans_sp_with_flow 
+let sigma_cm,sigma_sp,trans_sp_with_flow_with_cm = disjoint_union contact_map trans_sp_with_flow 
 let _ = dump "flow_annotated_species_cm.dot" [] trans_sp_with_flow_with_cm
 let _ = dump "flow_annotated_species_annotated_cm.dot" []
-  (add_flow_cm site_cm trans_sp_with_flow_with_cm)
+  (add_flow_cm (lift_site sigma_cm) trans_sp_with_flow_with_cm)
 
-let ag_cm,site_cm,_,ag_sp,site_sp,_,trans_sp_with_cm = disjoint_union contact_map trans_sp
+let sigma_cm,sigma_sp,trans_sp_with_cm = disjoint_union contact_map trans_sp
 let _ = dump "species_frag2_annotated_cm.dot" ["frag",2]
-  (add_flow_cm site_cm trans_sp_with_cm)
+  (add_flow_cm (lift_site sigma_cm) trans_sp_with_cm)
+
 
 let proj = 
-   [
-      ag_sp sp_grb22, ag_cm cm_grb2;
-      ag_sp sp_grb21, ag_cm cm_grb2;
-      ag_sp sp_egfr2,ag_cm cm_egfr;
-      ag_sp sp_egfr1,ag_cm cm_egfr;
-      ag_sp sp_egf2,ag_cm cm_egf;
-      ag_sp sp_egf1,ag_cm cm_egf;
-      ag_sp sp_shc2,ag_cm cm_shc;
-      ag_sp sp_shc1,ag_cm cm_shc;
-      ag_sp sp_sos1, ag_cm cm_sos] 
+  List.rev_map 
+    (fun (x,y) -> lift_agent sigma_sp x,lift_agent sigma_cm y)
+    [sp_grb22,cm_grb2;
+     sp_grb21,cm_grb2;
+     sp_egfr2,cm_egfr;
+     sp_egfr1,cm_egfr;
+     sp_egf2,cm_egf;
+     sp_egf1,cm_egf;
+     sp_shc2,cm_shc;
+     sp_shc1,cm_shc;
+     sp_sos1,cm_sos] 
 
 let proj_inv = List.map (fun (x,y) -> (y,x)) proj
 
@@ -260,13 +262,13 @@ let species_cm =
 
 let _ = dump "flow_annotated_species_proj_cm.dot" [] species_cm 
 let _ = dump "flow_annotated_species_proj_annotated_cm.dot" [] 
-  (add_flow_cm site_cm species_cm) 
+  (add_flow_cm (lift_site sigma_cm) species_cm) 
 
 
 let _ = dump "species_frag2_proj_annotated_cm.dot" ["frag",2]
-  (add_flow_cm site_cm (add_proj proj_inv trans_sp_with_cm))
+  (add_flow_cm (lift_site sigma_cm) (add_proj proj_inv trans_sp_with_cm))
 let _ = dump "species_annotated_frag2_proj_annotated_cm.dot" ["frag",2;"flow",1]
-  (add_flow_cm site_cm (add_proj proj_inv trans_sp_with_flow_with_cm))
+  (add_flow_cm (lift_site sigma_cm) (add_proj proj_inv trans_sp_with_flow_with_cm))
 
 
 (* RULE *)
@@ -288,17 +290,14 @@ let lhs_domain,
 
 let lhs_domain = add_link_list [rule_egfr_Y48,rule_shc_pi] lhs_domain 
 
-
-let agl,sitel,statel,agr,siter,stater,domain = 
-  disjoint_union lhs_domain (move_remanent_bellow 1. lhs_domain lhs_domain)
-
-let site1 = (fun x -> x)
-let site2 = (fun x -> x)
-
-let _,domain = add_internal_state (sitel rule_shc_Y7) shc_Y7_u [Direction ne] domain 
-let _,rule = add_internal_state (siter rule_shc_Y7) shc_Y7_p [Direction ne] domain 
-
-let rule = add_rule (-.3.9)  10.1  [Direction s] rule 
+let sigmal,_,_,rule = 
+  build_rule 
+    lhs_domain 
+    (fun remanent -> 
+      ([],[],[]),snd (add_internal_state rule_shc_Y7 shc_Y7_u [Direction ne] remanent))
+    (fun remanent -> 
+      ([],[],[]),snd (add_internal_state rule_shc_Y7 shc_Y7_p [Direction ne] remanent))
+    [Direction s]
 
 let _ = dump "flow_rule.dot" ["contact_map",0;"flow",0]  rule 
 
@@ -316,50 +315,62 @@ let _ = dump "flow_annotated_rule.dot" [] annotated_rule
 (* RULE + CM *) 
 
 let rule_plus_x x string proj_list add_flow = 
-  let _,sitel,_,_,_,_,all = disjoint_union x (translate_graph {abscisse =  -3. ; ordinate =  0.} rule) in 
+  let sigmal,_,all = disjoint_union x (translate_graph {abscisse =  -3. ; ordinate =  0.} rule) in 
   let _ = dump ("flow_rule_"^string^".dot") [] all in 
-  let _ = dump ("flow_rule_annotated_"^string^".dot") [] (add_flow sitel all) in 
-  let agl,sitel,_,agr,siter_,_,annotated_rule_x = disjoint_union x (translate_graph {abscisse = -.3. ; ordinate =  0.} annotated_rule) in 
+  let _ = dump ("flow_rule_annotated_"^string^".dot") [] (add_flow_list (add_flow sigmal) all) in 
+  let sigmal,sigmar,annotated_rule_x = disjoint_union x (translate_graph {abscisse = -.3. ; ordinate =  0.} annotated_rule) in 
   let _ = dump ("flow_annotated_rule_"^string^".dot") [] annotated_rule_x  in 
   let proj_annotated_rule_x = 
     add_proj 
-      (proj_list agr agl)
+      (proj_list sigmal sigmar)
       annotated_rule_x
   in 
   let _ = dump ("flow_annotated_rule_proj_"^string^".dot") [] proj_annotated_rule_x in 
-  let annotated_rule_annotated_x = add_flow sitel annotated_rule_x in 
+  let annotated_rule_annotated_x = add_flow_list (add_flow  sigmal) annotated_rule_x in 
   let _ = 
     dump ("flow_annotated_rule_annotated_"^string^".dot") [] annotated_rule_annotated_x 
   in 
-  let annotated_rule_proj_annotated_x = add_flow sitel proj_annotated_rule_x in 
+  let annotated_rule_proj_annotated_x = 
+    add_flow_list (add_flow sigmal) proj_annotated_rule_x in 
   dump ("flow_annotated_rule_proj_annotated_"^string^".dot") [] annotated_rule_proj_annotated_x 
 
 
-let proj_list_cm agr agl = 
-  [
-    agr rule_shc,agl cm_shc;
-    agr rule_egfr, agl cm_egfr] 
+let proj_list sigmar sigmar = 
+  List.map (fun (x,y) -> lift_agent sigmar x,lift_agent sigmal y) 
 
-let proj_list_sp agr agl = 
-  [agr rule_shc,agl sp_shc2;
-   agr rule_egfr,agl sp_egfr2]
-
-let add_flow_cm sitel  = 
-  add_flow_list 
-    [ 
-      sitel cm_egfr_r,sitel cm_egfr_Y48;
-      sitel cm_egfr_Y48,sitel cm_shc_pi;
-      sitel cm_shc_pi,sitel cm_shc_Y7
-    ]
-
-let add_flow_species silel = 
-  add_flow_list 
+let proj_list_cm sigmar sigmal = 
+  proj_list sigmar sigmal 
     [
-      sitel sp_egfr2_r,sitel sp_egfr2_Y48;
-      sitel sp_egfr2_Y48,sitel sp_shc2_pi;
-      sitel sp_shc2_pi,sitel sp_shc2_Y7
+      rule_shc,cm_shc;
+      rule_egfr,cm_egfr
     ]
     
+let proj_list_sp sigmar sigmal = 
+  proj_list sigmar sigmal 
+    [
+      rule_shc,sp_shc2;
+      rule_egfr,sp_egfr2
+    ]
+    
+let add_flow sigma = 
+  List.map (fun (x,y) -> lift_site sigma x,lift_site sigma y)
+
+let add_flow_cm sigmal  = 
+  add_flow sigmal 
+    [ 
+      cm_egfr_r,cm_egfr_Y48;
+      cm_egfr_Y48,cm_shc_pi;
+      cm_shc_pi,cm_shc_Y7
+    ]
+
+let add_flow_species sigmal = 
+  add_flow sigmal 
+    [
+      sp_egfr2_r,sp_egfr2_Y48;
+      sp_egfr2_Y48,sp_shc2_pi;
+      sp_shc2_pi,sp_shc2_Y7
+    ]
+       
 let _ = rule_plus_x contact_map "cm" proj_list_cm add_flow_cm 
 let _ = rule_plus_x (vertical_swap species) "sp" proj_list_sp add_flow_species
 
@@ -455,36 +466,31 @@ let lhs_domain,
 
 let lhs_domain = add_link_list [cons_egfr_Y48,cons_shc_pi] lhs_domain 
 
+let sigmal,sigmar,_,rule = 
+  build_rule 
+    lhs_domain 
+    (fun remanent -> 
+      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_u [Direction ne] remanent))
+    (fun remanent -> 
+      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_p [Direction ne] remanent))
+    [Direction e]
 
-let agl,sitel,statel,agr,siter,stater,domain = 
-  disjoint_union lhs_domain (move_remanent_right_to 1.2 lhs_domain lhs_domain)
-
-let site1 = (fun x -> x)
-let site2 = (fun x -> x)
-
-let _,rule = add_internal_state (sitel cons_shc_Y7) shc_Y7_u [Direction sw] domain 
-let _,rule = add_internal_state (siter cons_shc_Y7) shc_Y7_p [Direction sw] rule
-
-let rule = add_rule  (-.1.)  12.  [Direction e] rule 
 
 let _ = dump "flow_cons_rule.dot" ["contact_map",0;"flow",0]  rule 
 
 let cons_egfr_l,fragment = add_site cons_egfr egfr_l [Direction s] lhs_domain 
 let _,fragment = add_bound cons_egfr_l [Direction se] fragment 
 
-let _ = dump "flow_cons.dot" ["contact_map",0;"flow",0]  fragment 
+let sigmarule,sigmafragment,cons =   disjoint_union rule (move_remanent_bellow 0. fragment lhs_domain)
 
-let agrule,siter,stater,agf,sitef,statef,cons =   disjoint_union rule (move_remanent_bellow 0. fragment lhs_domain)
+let sigmalrule = compose_lift sigmarule sigmal 
+let lift = 
+  List.map
+    (fun x -> lift_agent sigmalrule x,lift_agent sigmafragment x)
+let pairing = lift [cons_egfr;cons_shc]
+let cons1 = add_match pairing cons 
 
-let cons1 = add_match
-  [ agrule (agl cons_egfr), agf cons_egfr;
-    agrule (agl cons_shc),agf cons_shc]
-      cons 
-
-let cons2 = add_proj 
-  [ agrule (agl cons_egfr), agf cons_egfr;
-    agrule (agl cons_shc),agf cons_shc]
-  cons 
+let cons2 = add_proj pairing cons 
 
 let _ = dump "flow_cons_match.dot" ["contact_map",0;"flow",0]  cons1
 let _ = dump "flow_cons_proj.dot" ["contact_map",0;"flow",0]  cons2
@@ -508,16 +514,15 @@ let fragment,
 
 let _,fragment = add_bound frag_egfr_l [Direction se] fragment 
 
-let agrule,siterule,staterule,agf,sitef,statef,prod =   disjoint_union rule (move_remanent_bellow 0. (translate_graph {abscisse = 6.;ordinate =  0.} fragment) lhs_domain)
-
-
-let prod1 = add_match
-  [ agrule (agr cons_egfr), agf frag_egfr;
-    agrule (agr cons_shc),agf frag_shc]
-      prod
-let st,prod2 = add_site (agrule (agr cons_egfr)) egfr_l [Direction s;Color "red"] prod1 
+let sigmarule,sigmafragment,prod =   disjoint_union rule (move_remanent_bellow 0. (translate_graph {abscisse = 6.;ordinate =  0.} fragment) lhs_domain)
+let sigmaruler = compose_lift sigmarule sigmar
+let sigmarulel = compose_lift sigmarule sigmal
+let lift = 
+  List.map (fun (x,y) -> lift_agent sigmaruler x,lift_agent sigmafragment y)
+let prod1 = add_match (lift [cons_egfr,frag_egfr;cons_shc,frag_shc]) prod
+let st,prod2 = add_site (lift_agent sigmaruler cons_egfr) egfr_l [Direction s;Color "red"] prod1 
 let _,prod2 = add_bound st [Color "red"] prod2 
-let st,prod2 = add_site (agrule (agl cons_egfr)) egfr_l [Direction s;Color "red"] prod2
+let st,prod2 = add_site (lift_agent sigmarulel cons_egfr) egfr_l [Direction s;Color "red"] prod2
 let _,prod2 = add_bound st [Color "red"] prod2 
 let _ = dump "flow_prod_match.dot" ["contact_map",0;"flow",0]  prod1
 let _ = dump "flow_prod_overlap.dot" ["contact_map",0;"flow",0]  prod2
@@ -598,15 +603,16 @@ let lhs_domain,
 let lhs_domain = add_link_list [cons_egfr_Y48,cons_shc_pi] lhs_domain 
 
 
-let agl,sitel,statel,agr,siter,stater,domain = 
-  disjoint_union lhs_domain (move_remanent_right_to 1.2 lhs_domain lhs_domain)
 
-let site1 = (fun x -> x)
-let site2 = (fun x -> x)
 
-let _,rule = add_internal_state (sitel cons_shc_Y7) shc_Y7_u [Direction sw] domain 
-let _,rule = add_internal_state (siter cons_shc_Y7) shc_Y7_p [Direction sw] rule
+let _,_,_,rule = 
+  build_rule 
+    lhs_domain 
+    (fun remanent -> 
+      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_u [Direction sw] remanent))
+    (fun remanent -> 
+      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_p [Direction sw] remanent))
+    [Direction s]
 
-let rule = add_rule  (-.1.)  12.  [Direction e] rule 
 
 let _ = dump "flow_cons_rule.dot" ["contact_map",0;"flow",0]  rule 

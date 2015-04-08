@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-29 feret>
- * Last modification: Time-stamp: <2015-04-07 08:33:07 feret>
+ * Last modification: Time-stamp: <2015-04-08 07:26:33 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -40,4 +40,5 @@ let config =
     rule_width = 1;
     cross_width = 5 ; 
     edge_label_font = 20 ;
+    rule_margin = 0.1; 
   }

@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation: March, the 28th of 2015
- * Last modification: Time-stamp: <2015-04-07 08:32:41 feret>
+ * Last modification: Time-stamp: <2015-04-08 07:05:08 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -39,6 +39,7 @@ type config =
     rule_width: int;
     cross_width: int;
     edge_label_font: int;
+    rule_margin: float
   }
 
 type tag = string 
@@ -79,6 +80,8 @@ type graph =
   (agent_type *float*float*directive list* 
      (site_type * directive list* 
 	state_type list) list) list
+type lift 
+
 val init: config -> agent_type * remanent_state 
 val add_agent_type: string -> directive list -> remanent_state -> agent_type * remanent_state 
 val add_site_type: agent_type -> string -> directive list -> remanent_state -> site_type * remanent_state 
@@ -101,7 +104,11 @@ val add_flow_list: (site*site) list -> remanent_state -> remanent_state
 val add_link_list: (site*site) list -> remanent_state -> remanent_state 
 val map_id: (id -> id) -> remanent_state -> 
   (agent->agent)*(site->site)*(state->state)*remanent_state 
-    
+
+val compose_lift: lift -> lift -> lift 
+val lift_agent: lift -> agent -> agent 
+val lift_site: lift -> site -> site 
+val lift_state: lift -> state -> state     
 val dump: string -> (tag*int) list -> remanent_state -> unit
 val rotate: float ->float-> float->remanent_state ->remanent_state
 val translate_graph: point -> remanent_state -> remanent_state
@@ -109,10 +116,8 @@ val sym: float -> float ->remanent_state -> remanent_state
 val fuse: remanent_state -> remanent_state -> remanent_state
 val horizontal_swap: remanent_state -> remanent_state 
 val vertical_swap: remanent_state -> remanent_state 
-val disjoint_union: remanent_state -> remanent_state -> 
-  (agent -> agent)*(site -> site)*(state->state)*(agent->agent)*(site->site)*(state->state)*remanent_state 
-val disjoint_union_with_match: remanent_state -> remanent_state -> 
-  (agent -> agent)*(site -> site)*(state->state)*(agent->agent)*(site->site)*(state->state)*remanent_state 
+val disjoint_union: remanent_state -> remanent_state -> lift * lift * remanent_state 
+val disjoint_union_with_match: remanent_state -> remanent_state -> lift * lift * remanent_state 
 val add_match: (agent*agent) list -> remanent_state -> remanent_state 
 val add_proj: (agent*agent) list -> remanent_state -> remanent_state 
 val add_emb: (agent*agent) list -> remanent_state -> remanent_state
@@ -124,3 +129,7 @@ val move_remanent_bellow: float -> remanent_state -> remanent_state -> remanent_
 val add_rule: float -> float -> directive list -> remanent_state -> remanent_state
 val corners: remanent_state -> (float * float * float * float) option 
 val cross: remanent_state -> remanent_state 
+
+type valuation = graph_vars * (site * state list) list * state list 
+
+val build_rule: remanent_state -> (remanent_state -> valuation * remanent_state) -> (remanent_state -> valuation * remanent_state) -> directive list -> lift * lift * valuation * remanent_state
