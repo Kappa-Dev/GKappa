@@ -1,10 +1,11 @@
+
 (**
  * egfr.ml 
  * GKappa
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-08 07:40:54 feret>
+ * Last modification: Time-stamp: <2015-04-11 21:52:12 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -265,6 +266,7 @@ let _ = dump "flow_annotated_species_proj_annotated_cm.dot" []
   (add_flow_cm (lift_site sigma_cm) species_cm) 
 
 
+
 let _ = dump "species_frag2_proj_annotated_cm.dot" ["frag",2]
   (add_flow_cm (lift_site sigma_cm) (add_proj proj_inv trans_sp_with_cm))
 let _ = dump "species_annotated_frag2_proj_annotated_cm.dot" ["frag",2;"flow",1]
@@ -286,7 +288,7 @@ let lhs_domain,
        shc_pi,[Direction se],[]];
       egfr,-3.,12.,[],
       [egfr_r,[Direction s],[Bound_site [Direction s]];
-      egfr_Y48,[Direction (of_degree (to_degree nw+.5.));Scale 1.01],[]]]
+      egfr_Y48,[Direction (of_degree (to_degree nw+.5.));Scale 1.01],[Internal_state (egfr_Y48_p,[Direction (of_degree (to_degree nw+.20.))])]]]
 
 let lhs_domain = add_link_list [rule_egfr_Y48,rule_shc_pi] lhs_domain 
 
@@ -313,27 +315,6 @@ let annotated_rule =
 let _ = dump "flow_annotated_rule.dot" [] annotated_rule 
 
 (* RULE + CM *) 
-
-let rule_plus_x x string proj_list add_flow = 
-  let sigmal,_,all = disjoint_union x (translate_graph {abscisse =  -3. ; ordinate =  0.} rule) in 
-  let _ = dump ("flow_rule_"^string^".dot") [] all in 
-  let _ = dump ("flow_rule_annotated_"^string^".dot") [] (add_flow_list (add_flow sigmal) all) in 
-  let sigmal,sigmar,annotated_rule_x = disjoint_union x (translate_graph {abscisse = -.3. ; ordinate =  0.} annotated_rule) in 
-  let _ = dump ("flow_annotated_rule_"^string^".dot") [] annotated_rule_x  in 
-  let proj_annotated_rule_x = 
-    add_proj 
-      (proj_list sigmal sigmar)
-      annotated_rule_x
-  in 
-  let _ = dump ("flow_annotated_rule_proj_"^string^".dot") [] proj_annotated_rule_x in 
-  let annotated_rule_annotated_x = add_flow_list (add_flow  sigmal) annotated_rule_x in 
-  let _ = 
-    dump ("flow_annotated_rule_annotated_"^string^".dot") [] annotated_rule_annotated_x 
-  in 
-  let annotated_rule_proj_annotated_x = 
-    add_flow_list (add_flow sigmal) proj_annotated_rule_x in 
-  dump ("flow_annotated_rule_proj_annotated_"^string^".dot") [] annotated_rule_proj_annotated_x 
-
 
 let proj_list sigmar sigmar = 
   List.map (fun (x,y) -> lift_agent sigmar x,lift_agent sigmal y) 
@@ -371,11 +352,9 @@ let add_flow_species sigmal =
       sp_shc2_pi,sp_shc2_Y7
     ]
        
-let _ = rule_plus_x contact_map "cm" proj_list_cm add_flow_cm 
-let _ = rule_plus_x (vertical_swap species) "sp" proj_list_sp add_flow_species
+let _ = proj_rule_flow_on_a_species ~file:"flow_rule_proj_sp_"  annotated_rule (vertical_swap species) [rule_shc,sp_shc2;rule_egfr,sp_egfr2]
 
 (* frag3 + CM *)
-
 
 let exaa = [Tag ("Exab",0);Tag("Exac",0);Tag("Exad",0)]
 
@@ -582,7 +561,7 @@ let short_species =
 
  
 let _ = dump "flow_species_annotated.dot" []  short_species
-let _ = dump "flow_species_sp_annotated.dot" ["species",0]  (snd (add_free sp_egfr2_r [] short_species))
+(*let _ = dump "flow_species_sp_annotated.dot" ["species",0]  (snd (add_free sp_egfr2_r [] short_species))*)
 
 let lhs_domain, 
   [

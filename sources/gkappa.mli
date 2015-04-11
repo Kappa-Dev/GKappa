@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation: March, the 28th of 2015
- * Last modification: Time-stamp: <2015-04-08 07:05:08 feret>
+ * Last modification: Time-stamp: <2015-04-11 10:24:03 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -17,6 +17,7 @@
 
 open Data_structures 
 open Geometry 
+open StdLabels 
 
 type config = 
   { 
@@ -39,7 +40,8 @@ type config =
     rule_width: int;
     cross_width: int;
     edge_label_font: int;
-    rule_margin: float
+    rule_margin: float;
+      flow_padding: float
   }
 
 type tag = string 
@@ -133,3 +135,5 @@ val cross: remanent_state -> remanent_state
 type valuation = graph_vars * (site * state list) list * state list 
 
 val build_rule: remanent_state -> (remanent_state -> valuation * remanent_state) -> (remanent_state -> valuation * remanent_state) -> directive list -> lift * lift * valuation * remanent_state
+
+val proj_rule_flow_on_a_species: ?file:string -> ?angle:float -> ?flow:(site * site) list -> remanent_state -> remanent_state -> (agent * agent) list -> lift * lift * remanent_state * remanent_state * remanent_state * remanent_state * remanent_state 

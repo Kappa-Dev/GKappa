@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-08 07:56:16 feret>
+ * Last modification: Time-stamp: <2015-04-11 21:49:40 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -98,11 +98,12 @@ type config =
     cross_width: int;
     edge_label_font:int;
     rule_margin: float;
+    flow_padding: float;
   }
     
 type intset = IntSet.t 
 type sig_kind = Agent_type | Site_type | State_type 
-type node_kind = Agent | Site | State | Rule_source | Rule_target | Free of int | Bound | Dummy_node 
+type node_kind = Agent of id | Site of id | State of id | Rule_source | Rule_target | Free of int | Bound | Dummy_node 
 type edge_kind = Link | Relation of (node_kind * node_kind) | Free_symbol of int | Bound_symbol  | Rule | Dummy_edge
 
 let assert_compatible_items x y = true (*to do*)
@@ -110,9 +111,9 @@ let assert_compatible_items x y = true (*to do*)
 let string_of_node_kind x = 
   match x
   with 
-  | Agent -> "Agent"
-  | Site -> "Site"
-  | State -> "State"
+  | Agent _ -> "Agent"
+  | Site _ -> "Site"
+  | State _ -> "State"
   | Rule_source -> "RuleS"
   | Rule_target -> "RuleT"
   | Dummy_node -> "Dummy"
@@ -137,7 +138,7 @@ type 'a item =
   { 
     label: string ; 
     kind: 'a ;
-    sibblings: IdSet.t; 
+    sibblings: IdSet.t IdMap.t; 
     n_sibblings: Id.t;
     father: id option; 
     tags: intset TagMap.t ;
@@ -166,7 +167,7 @@ let dummy_item =
     comment = "";
     kind = Dummy_node ;
     father = None ;
-    sibblings = IdSet.empty ; 
+    sibblings = IdMap.empty ; 
     label = "" ;
     tags = TagMap.empty; 
     n_sibblings=0;
@@ -221,14 +222,14 @@ let rule = { link with forward = true ; kind = Rule}
 let weak_flow = 
   { link 
     with 
-      priority = 1;
+      priority = 2;
       forward = true;
       color = "cyan";
       tags = TagMap.add "flow" (IntSet.add 1 (IntSet.add 2 IntSet.empty)) TagMap.empty}
 
 let flow = 
   { weak_flow with 
-    priority = 2;
+    priority = 3;
     color = "red" ;
     tags = TagMap.add "flow" (IntSet.add 1 IntSet.empty) TagMap.empty}
 	
@@ -246,6 +247,7 @@ type remanent_state =
     config: config ;
     items: node_kind item IdMap.t;
     edges: edge_kind item list Id2Map.t;
+    nagent_sig_items: int;
     nsig_items: int ;
     sig_items:sig_kind item IdMap.t ;
     nitems: id;
@@ -283,6 +285,7 @@ let init config =
     sig_items = IdMap.empty ;
     edges = Id2Map.empty ;
     nitems = init_id;
+    nagent_sig_items = init_id;
     nsig_items = init_id ;
   }
 
@@ -395,15 +398,27 @@ let compose_lift (ag1,site1,state1) (ag2,site2,state2) =
    compose state1 state2)
 
 let add_agent_type name attributes remanent = 
+  let ag_c = remanent.nagent_sig_items +1 in 
+  let remanent = {remanent with nagent_sig_items = ag_c} in 
   let f id item = 
     {item with 
       label = name;
-      fillcolor = n_modulo (remanent.config.agent_colors) id}
+      fillcolor = n_modulo (remanent.config.agent_colors) ag_c}
   in 
   let agent_sig = 
     parse_attributes p_agent_type "agent type" attributes dummy_agent_type 
   in 
   add_sig f agent_sig remanent 
+
+let add_sibbling s_id s_type map = 
+  let old = 
+    match 
+      IdMap.find_option s_type map 
+    with 
+    | None -> IdSet.empty 
+    | Some a -> a 
+  in 
+  IdMap.add s_type (IdSet.add s_id old) map
 
 let add_son_type father error1 error2 error3 name dummy attributes p color_list remanent = 
   match IdMap.find_option father remanent.sig_items 
@@ -423,7 +438,10 @@ let add_son_type father error1 error2 error3 name dummy attributes p color_list 
       {sibbling_item with father = Some father ; label = name }
     in 
     let s_id,remanent = add_sig (fun _ x -> x) sibbling_item remanent in 
-    let father_item = { father_item with sibblings = IdSet.add s_id father_item.sibblings} in 
+    let father_item = 
+      { father_item with sibblings = 
+	  add_sibbling s_id s_id father_item.sibblings} 
+    in 
     s_id,{remanent with sig_items = IdMap.add father father_item remanent.sig_items}
 
 let add_site_type agent_type name attributes remanent = 
@@ -480,7 +498,7 @@ let add_agent agent_type  abs ord attributes remanent =
   | Some item -> 
     let f id item = item in 
     let item = parse_attributes p_agent "agent" attributes item in 
-    let item = {item with kind = Agent ; coordinate = {abscisse = abs ; ordinate = ord }} in 
+    let item = {item with kind = Agent agent_type ; coordinate = {abscisse = abs ; ordinate = ord }; sibblings = IdMap.empty } in 
     add_node f item remanent 
 
 let add_son father son_type kind error1 error2 error3 attributes p remanent = 
@@ -495,18 +513,18 @@ let add_son father son_type kind error1 error2 error3 attributes p remanent =
     let _ = Printf.fprintf stderr "ERROR: in %s, dandling pointer\n" error1 
     in dummy_id,remanent
   | Some item,Some father_item -> 
-    let item = parse_attributes p error3 attributes {item with tags = father_item.tags} in 
+    let item = parse_attributes p error3 attributes {item with tags = father_item.tags ; orientation = match kind with State _ -> father_item.orientation | _ -> item.orientation } in 
     let site_center = point_on_ellipse father_item.coordinate father_item.width father_item.height item.orientation item.scale_factor in 
-    let item = {item with father = Some father ; kind = kind ; label = item.label ; coordinate = site_center } in 
+    let item = {item with father = Some father ; kind = kind ; label = item.label ; coordinate = site_center ; sibblings = IdMap.empty } in 
     let s_id,remanent = add_node (fun _ x -> x) item remanent in 
-    let father_item = { father_item with sibblings = IdSet.add s_id father_item.sibblings } in 
+    let father_item = { father_item with sibblings = add_sibbling s_id son_type father_item.sibblings } in 
     s_id,{remanent with items = IdMap.add father father_item remanent.items}
 
 let add_site agent name attributes remanent = 
-  add_son agent name Site "add_site" "a site" "agent" attributes p_site remanent 
+  add_son agent name (Site name) "add_site" "a site" "agent" attributes p_site remanent 
       
 let add_internal_state site_type state attributes remanent = 
-  add_son site_type state State "add_internal_state" "an internal state" "site" attributes p_state remanent
+  add_son site_type state (State site_type) "add_internal_state" "an internal state" "site" attributes p_state remanent
 
 let op edge = 
   {edge with backward = edge.forward ; forward = edge.backward}
@@ -577,13 +595,13 @@ let add_free site_id attributes remanent =
     let free_center2 = point_on_ellipse_ext free_center1 0. 0. (clockwise item.orientation 90.) 1. (item.width/.2.) in 
     let free_center3 = point_on_ellipse_ext free_center1 0. 0. (anticlockwise item.orientation 90.)  1. (item.width/.2.) in 
     let node = {item with width = 0. ; height = 0. ; color = "white" ; style = "" } in 
-    let node_id1 = {node with coordinate = free_center1 ; kind = Free 1 ; sibblings = IdSet.empty } in 
+    let node_id1 = {node with coordinate = free_center1 ; kind = Free 1 ; sibblings = IdMap.empty } in 
      let id1,remanent = add_node (fun _ x -> x) node_id1  remanent in
      let id2,remanent = add_node (fun _ x -> x) {node with coordinate = free_center2 ; kind = Free 2 ; father = Some id1 } remanent in 
     let id3,remanent = add_node (fun _ x -> x) {node with coordinate = free_center3 ; kind = Free 3 ; father = Some id1 } remanent in 
-    let remanent = {remanent with items = IdMap.add id1 {node_id1 with sibblings = IdSet.add id2 (IdSet.add id3 IdSet.empty)} remanent.items} in 
+    let remanent = {remanent with items = IdMap.add id1 {node_id1 with sibblings = add_sibbling id2 (-1) (add_sibbling id3 (-1) IdMap.empty)} remanent.items} in 
     let remanent = add_link {item with kind = Free_symbol 1} site_id id1 (add_link {item with kind = Free_symbol 2} id2 id3 remanent) in 
-    id1,{remanent with items = IdMap.add site_id {site with sibblings = IdSet.add id1 (IdSet.add id2 (IdSet.add id3 site.sibblings))} remanent.items}
+    id1,{remanent with items = IdMap.add site_id {site with sibblings = add_sibbling id1 (-1) (add_sibbling id2 (-1) (add_sibbling id3 (-1) site.sibblings))} remanent.items}
 
 let add_bound site_id attributes remanent = 
   match 
@@ -601,7 +619,7 @@ let add_bound site_id attributes remanent =
     let item = {item with height = 0. ; color = "white" ; fillcolor = "white" } in 
     let id1,remanent = add_node (fun _ x -> x) {item with coordinate = bound_center ; kind = Bound} remanent in 
     let remanent = add_link {item with kind = Bound_symbol ; width = 0. ; height = 0. ; fillcolor = fillcolor ; color = color}  site_id id1 remanent in 
-    id1,{remanent with items = IdMap.add site_id {site with sibblings = IdSet.add id1 site.sibblings} remanent.items}
+    id1,{remanent with items = IdMap.add site_id {site with sibblings = add_sibbling id1 (-1) site.sibblings} remanent.items}
     
 let filter_label_in_agent remanent label =
   if remanent.config.show_agent_names then label else "" 
@@ -648,9 +666,9 @@ let dump_node chan filter remanent node_id node =
     match 
       node.kind 
     with 
-    | Agent -> filter_label_in_agent,filter_color_in_state 
-    | Site -> filter_label_in_site,filter_color_in_site
-    | State -> filter_label_in_state, filter_color_in_state 
+    | Agent _ -> filter_label_in_agent,filter_color_in_state 
+    | Site _ -> filter_label_in_site,filter_color_in_site
+    | State _ -> filter_label_in_state, filter_color_in_state 
     | _ -> (fun _ x ->x),(fun _ x ->x)
   in 
   if filter_tags filter tags 
@@ -687,14 +705,15 @@ let dump_edge_list chan filter remanent (n1,n2) l =
       with 
 	edge::q -> 
 	  if edge.priority < threshold
-	  then aux q accu 
+	  then 
+	    aux q accu 
 	  else 
 	    begin
 	      let accu  =
 		match accu
-	      with None -> Some edge
-	      | Some accu -> 
-		Some (fusion_edge accu edge)
+		with None -> Some edge
+		| Some accu -> 
+		  Some (fusion_edge accu edge)
 	      in 
 	      aux q accu 
 	    end
@@ -704,7 +723,8 @@ let dump_edge_list chan filter remanent (n1,n2) l =
     aux l None
     with 
       None -> ()
-    | Some edge -> dump_edge chan (n1,n2) edge remanent 
+    | Some edge -> 
+      dump_edge chan (n1,n2) edge remanent 
       
 
 let dump file filter remanent = 
@@ -829,7 +849,7 @@ let apply_f_id_in_item f_id item =
     with 
       father = apply_opt f_id item.father ;
       sibblings = 
-      IdSet.fold (fun x -> IdSet.add (f_id x)) item.sibblings IdSet.empty 
+      IdMap.map (fun x -> IdSet.fold (fun x -> IdSet.add (f_id x)) x IdSet.empty ) item.sibblings
   }
   
 let map_id f_id remanent = 
@@ -979,7 +999,17 @@ let fuse remanent remanent' =
       (fun x y z map -> 
 	if y==z then map 
 	else if assert_compatible_items y z 
-	then IdMap.add x { y with sibblings = IdSet.union y.sibblings z.sibblings} map 
+	then IdMap.add x { y with sibblings = 
+	    IdMap.fold2 
+	      (fun x y z map -> 
+		IdMap.add x (IdSet.union y z) map)
+	      (fun x y map -> map)
+	      (fun x y map -> IdMap.add x y map)
+	      y.sibblings
+	      z.sibblings
+	      y.sibblings
+			 }
+	  map
 	else 
 	  (let _ = Printf.fprintf stderr "ERROR: In fuse, try to fuse maps with different images (items)\n" in map))
 
@@ -1156,14 +1186,16 @@ let build_rule domain extend_lhs extend_rhs directives =
   let angle = sample_angle node.orientation in 
   let (l1,l2,l3),lhs = extend_lhs domain in 
   let (r1,r2,r3),rhs = extend_rhs domain in 
-  let xm,xM,ym,yM = 
+  let lhs = tag_all_nodes "lhs" 1 lhs in 
+  let rhs = tag_all_nodes "rhs" 1 rhs in 
+  let cornerlhs = 
     match 
       corners lhs
     with 
       Some (xm,xM,ym,yM) -> xm,xM,ym,yM 
     | None -> 0.,0.,0.,0.
   in 
-  let xm',xM',ym',yM' = 
+  let cornerrhs = 
     match 
       corners rhs
     with 
@@ -1171,7 +1203,7 @@ let build_rule domain extend_lhs extend_rhs directives =
     | None -> 0.,0.,0.,0.
   in 
   let distance = (1.+.domain.config.rule_margin*.2.)*. node.width in
-  let rulex,ruley,deltax,deltay = compute_padding (xm,xM,ym,yM) (xm',xM',ym',yM') angle distance in 
+  let rulex,ruley,deltax,deltay = compute_padding cornerlhs cornerrhs angle distance in 
   let sigmal,sigmar,rule = disjoint_union lhs (translate_graph {abscisse=deltax;ordinate=deltay} rhs) in 
   let rule = add_rule rulex ruley directives rule in 
   sigmal,
@@ -1180,4 +1212,166 @@ let build_rule domain extend_lhs extend_rhs directives =
   List.concat [lift_site_list sigmal l2;lift_site_list sigmar r2],
   List.concat [lift_state_list sigmal l3;lift_state_list sigmar r3]),
    rule 
-   
+
+let rename_tag s s' = 
+  let f = 
+    (fun n -> 
+      {n with tags = 
+	  TagMap.fold 
+	    (fun tag i map -> 
+	      if tag = s 
+	      then 
+		let old = 
+		  match  
+		    TagMap.find_option s' map
+		  with 
+		  | Some x -> x 
+		  | None -> IntSet.empty 
+		in 
+		TagMap.add s' (IntSet.union old i) 
+		  (TagMap.remove s map)
+	      else 
+		map )
+	    n.tags
+	    n.tags})
+  in map_node f f 
+
+let tag_flow_from graph1 ag s s' graph2 = 
+  let edge2 = 
+    Id2Map.fold 
+      (fun (id1,id2) (edge:'a list) edge2 -> 
+	match 
+	    IdMap.find_option id1 ag
+	  with 
+	  | None -> edge2 
+	  | Some id1_list' -> 
+	    begin
+	      match 
+		IdMap.find_option id2 ag 
+	      with 
+	      | None -> edge2 
+	      | Some id2_list' -> 
+		begin
+		  List.fold_left 
+		    (fun edge2 edge_elt -> 
+		      match TagMap.find_option s edge_elt.tags 
+		      with 
+		      | None -> edge2 
+		      | Some i -> 
+			begin 
+			  List.fold_left 
+			    (fun edge2 id1' -> 
+			      List.fold_left 
+				(fun edge2 id2' -> 
+				  let id1',id2',edge_elt = 
+				      if compare id1' id2' < 0 
+				      then id2',id1',op edge_elt
+				      else id1',id2',edge_elt
+				  in
+				  let old_l = 
+				    match 
+				      Id2Map.find_option (id1',id2') edge2 
+				    with 
+				    | None -> []
+				    | Some l -> l 
+				  in 
+				  Id2Map.add (id1',id2') 
+				    ({edge_elt with tags = TagMap.add s' i (TagMap.remove s edge_elt.tags)}::old_l) edge2)
+				edge2 id2_list')
+			    edge2 id1_list'
+			end)
+		    edge2 
+		    (List.rev edge )
+	      end 
+	  end )
+      graph1.edges 
+      graph2.edges
+  in 
+  {graph2 with edges = edge2}
+
+let add_asso x y map = 
+  let l = 
+    match 
+      IdMap.find_option x map 
+    with 
+    | None -> []
+    | Some l -> l
+  in 
+  IdMap.add x ((y:id)::l) map
+
+let site_map_from_agent_list graph1 graph2 l = 
+  List.fold_left 
+    (fun map (x,y) -> 
+      match 
+	IdMap.find_option x graph1.items
+      with 
+      | None -> map
+      | Some x -> 
+	begin 
+    	  match 
+	    IdMap.find_option y graph2.items
+	  with 
+	  | None -> map
+	  | Some y -> 
+    	    let l_sites = x.sibblings in 
+	    IdMap.fold 
+	      (fun s_type -> 
+		IdSet.fold 
+		  ( fun s_id map -> 
+		    let l_sites2 = 
+		      match 
+			IdMap.find_option s_type y.sibblings 
+		      with 
+		      | None -> IdSet.empty
+		      | Some l -> l 
+		    in 
+		    IdSet.fold (fun a b -> add_asso s_id a b)
+		      l_sites2 map))
+	      l_sites map
+	end
+    )
+    IdMap.empty l 
+	
+let proj_rule_flow_on_a_species ?file:(s="") ?angle:(angle = 90.)  ?flow:(flow=[]) rule species l =
+  let rule = add_flow_list flow rule in 
+  let xm,xM,ym,yM = 
+    match 
+      corners rule 
+    with 
+      None -> 0.,0.,0.,0.
+    | Some (xm,xM,ym,yM) -> xm,xM,ym,yM 
+  in 
+  let xm',xM',ym',yM' = 
+    match 
+      corners species 
+    with 
+      None -> 0.,0.,0.,0.
+    | Some (xm,xM,ym,yM) -> xm,xM,ym,yM 
+  in 
+  let angle = sample_angle (of_degree angle) in 
+  let distance = (rule.config.flow_padding)*. ((xM-.xm)*.(sin (to_radius angle)) +. (yM-.ym)*.(cos (to_radius angle))) in 
+  let rulex,ruley,deltax,deltay = compute_padding (xm,xM,ym,yM) (xm',xM',ym',yM') angle distance in 
+  let rule = rename_tag "flow" "rule_flow" rule in 
+  let agent_map = 
+    List.fold_left (fun map (x,y) -> IdMap.add x y map) IdMap.empty l in 
+  let site_map = site_map_from_agent_list rule species l in 
+  let species = tag_flow_from rule site_map "rule_flow" "sp_flow" species in 
+  let _ = dump (s^"5.dot") ["sp_flow",1] species in 
+  let _ = dump (s^"6.dot") ["sp_flow",2] species in 
+  
+  let sigma_rule,sigma_sp,rule_species = disjoint_union rule (translate_graph {abscisse=deltax;ordinate=deltay} species) in 
+  let rule_species_with_proj = 
+    add_proj
+      (List.rev_map (fun (x,y) -> lift_agent sigma_rule x,lift_agent sigma_sp y) l) rule_species 
+  in 
+  let _ = 
+    match s with 
+    | "" -> ()
+    | _  -> 
+      let _ = dump (s^"0.dot") ["rule_flow",0;"sp_flow",0] rule_species in 
+      let _ = dump (s^"1.dot") ["rule_flow",1;"sp_flow",0] rule_species in 
+      let _ = dump (s^"2.dot") ["rule_flow",1;"sp_flow",0] rule_species_with_proj in 
+      let _ = dump (s^"3.dot") ["rule_flow",1;"sp_flow",1] rule_species_with_proj in 
+      let _ = dump (s^"4.dot") ["rule_flow",1;"sp_flow",1] rule_species_with_proj in 
+      () 
+  in sigma_rule,sigma_sp,rule_species,rule_species_with_proj,rule_species_with_proj,rule_species,rule_species
