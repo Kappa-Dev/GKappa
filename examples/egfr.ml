@@ -5,7 +5,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-11 21:52:12 feret>
+ * Last modification: Time-stamp: <2015-04-12 11:21:09 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -241,6 +241,7 @@ let _ = dump "species_frag2_annotated_cm.dot" ["frag",2]
   (add_flow_cm (lift_site sigma_cm) trans_sp_with_cm)
 
 
+
 let proj = 
   List.rev_map 
     (fun (x,y) -> lift_agent sigma_sp x,lift_agent sigma_cm y)
@@ -264,8 +265,7 @@ let species_cm =
 let _ = dump "flow_annotated_species_proj_cm.dot" [] species_cm 
 let _ = dump "flow_annotated_species_proj_annotated_cm.dot" [] 
   (add_flow_cm (lift_site sigma_cm) species_cm) 
-
-
+let _ = proj_flow_on_a_contact_map ~file:"flow_species_proj_contact_map_" ~angle:e species_with_flow  contact_map 
 
 let _ = dump "species_frag2_proj_annotated_cm.dot" ["frag",2]
   (add_flow_cm (lift_site sigma_cm) (add_proj proj_inv trans_sp_with_cm))
@@ -316,7 +316,7 @@ let _ = dump "flow_annotated_rule.dot" [] annotated_rule
 
 (* RULE + CM *) 
 
-let proj_list sigmar sigmar = 
+let proj_list sigmar sigmal = 
   List.map (fun (x,y) -> lift_agent sigmar x,lift_agent sigmal y) 
 
 let proj_list_cm sigmar sigmal = 
@@ -352,7 +352,8 @@ let add_flow_species sigmal =
       sp_shc2_pi,sp_shc2_Y7
     ]
        
-let _ = proj_rule_flow_on_a_species ~file:"flow_rule_proj_sp_"  annotated_rule (vertical_swap species) [rule_shc,sp_shc2;rule_egfr,sp_egfr2]
+let _ = proj_flow_on_a_species ~file:"flow_rule_proj_sp_"  ~padding:10. annotated_rule (vertical_swap species) [rule_shc,sp_shc2;rule_egfr,sp_egfr2]
+let _ = proj_flow_on_a_species ~file:"flow_rule_proj_contact_map_" ~padding:10. annotated_rule contact_map [rule_shc,cm_shc;rule_egfr,cm_egfr]
 
 (* frag3 + CM *)
 
@@ -455,7 +456,7 @@ let sigmal,sigmar,_,rule =
     [Direction e]
 
 
-let _ = dump "flow_cons_rule.dot" ["contact_map",0;"flow",0]  rule 
+let _ = dump "flow_cons_rule_e.dot" ["contact_map",0;"flow",0]  rule 
 
 let cons_egfr_l,fragment = add_site cons_egfr egfr_l [Direction s] lhs_domain 
 let _,fragment = add_bound cons_egfr_l [Direction se] fragment 
@@ -594,4 +595,4 @@ let _,_,_,rule =
     [Direction s]
 
 
-let _ = dump "flow_cons_rule.dot" ["contact_map",0;"flow",0]  rule 
+let _ = dump "flow_cons_rule_s.dot" ["contact_map",0;"flow",0]  rule 

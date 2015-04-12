@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-04 17:08:29 feret> 
+ * Last modification: Time-stamp: <2015-04-12 08:17:12 feret> 
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -36,6 +36,7 @@ module type Map = sig
   val map: ('a -> 'b) -> 'a t -> 'b t
   val fold: (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b            val map2:  ('a -> 'a -> 'a) -> 'a t -> 'a t -> 'a t 
   val fold2: (key -> 'a  -> 'a  -> 'b  ->  'b) -> (key -> 'a   -> 'b  -> 'b) -> (key -> 'a  -> 'b  -> 'b) ->  'a t -> 'a t -> 'b -> 'b 
+  val fold2z: (key -> 'a  -> 'a  -> 'b  ->  'b) -> (key -> 'a   -> 'b  -> 'b) -> (key -> 'a  -> 'b  -> 'b) ->  'a t -> 'a t -> 'b -> 'b 
 end
 
 module Make(Ord:OrderedType) =  
@@ -287,7 +288,28 @@ module Make(Ord:OrderedType) =
             fold2 f g h right1 right2 res''
         end
           
-                     
+    let rec fold2z  f g h map1 map2 res =
+      if map1==map2 then res 
+      else 
+	match map1,map2 with 
+      | Empty,Empty -> res 
+      | Empty , _ -> fold h map2 res 
+      | _ , Empty -> fold g map1 res 
+      | Node(left1,key1,data1,right1,_),_ -> 
+        let left2,data2,right2 = split  key1 map2 in 
+        begin 
+          match data2 with 
+          | None -> 
+	    let res' = fold2z f g h left1 left2 res in 
+            let res'' = g key1 data1 res' in
+            fold2 f g h right1 right2 res''
+          | Some data2 -> 
+            let res' = fold2z f g h left1 left2 res in 
+	    let res'' = f key1 data1 data2 res' 
+	    in
+            fold2z f g h right1 right2 res''
+        end       
+        
 end:Map with type key = Ord.t)
       
     

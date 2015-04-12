@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-11 21:49:40 feret>
+ * Last modification: Time-stamp: <2015-04-12 11:27:53 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -251,6 +251,7 @@ type remanent_state =
     nsig_items: int ;
     sig_items:sig_kind item IdMap.t ;
     nitems: id;
+    agents: IdSet.t IdMap.t
   }
 	
 	
@@ -287,6 +288,7 @@ let init config =
     nitems = init_id;
     nagent_sig_items = init_id;
     nsig_items = init_id ;
+    agents = IdMap.empty
   }
 
 let add_tag s i map = 
@@ -400,13 +402,9 @@ let compose_lift (ag1,site1,state1) (ag2,site2,state2) =
 let add_agent_type name attributes remanent = 
   let ag_c = remanent.nagent_sig_items +1 in 
   let remanent = {remanent with nagent_sig_items = ag_c} in 
-  let f id item = 
-    {item with 
-      label = name;
-      fillcolor = n_modulo (remanent.config.agent_colors) ag_c}
-  in 
+  let f id item = {item with label = name} in 
   let agent_sig = 
-    parse_attributes p_agent_type "agent type" attributes dummy_agent_type 
+    parse_attributes p_agent_type "agent type" attributes {dummy_agent_type  with fillcolor = n_modulo (remanent.config.agent_colors) ag_c}
   in 
   add_sig f agent_sig remanent 
 
@@ -499,7 +497,13 @@ let add_agent agent_type  abs ord attributes remanent =
     let f id item = item in 
     let item = parse_attributes p_agent "agent" attributes item in 
     let item = {item with kind = Agent agent_type ; coordinate = {abscisse = abs ; ordinate = ord }; sibblings = IdMap.empty } in 
-    add_node f item remanent 
+    let id,remanent = add_node f item remanent in 
+    id,{remanent 
+	with 
+	  agents = 
+	IdMap.add agent_type (match IdMap.find_option agent_type remanent.agents 
+	  with None -> IdSet.singleton id
+	  | Some l -> IdSet.add id l) remanent.agents}
 
 let add_son father son_type kind error1 error2 error3 attributes p remanent = 
   match 
@@ -643,7 +647,7 @@ let filter_tags list map =
       | x::q -> 
 	let s = s_of_x x in 
 	match TagMap.find_option s map 
-	with None -> deft
+	with None -> deft && aux q 
 	| Some set ->
 	  if p x set 
 	  then aux q 
@@ -686,7 +690,8 @@ let dump_edge_list chan filter remanent (n1,n2) l =
   | None,_ | _,None -> Printf.fprintf stderr "ERROR: in dump_edge_list, dandling pointers\n" 
   | Some node1,Some node2 -> 
     let l = List.filter 
-      (fun edge -> (filter_tags filter node1.tags && 
+      (fun edge -> 
+	(filter_tags filter node1.tags && 
 		      filter_tags filter node2.tags && 
 		      filter_tags filter edge.tags )) l
     in 
@@ -882,8 +887,11 @@ let map_id f_id remanent =
       remanent.edges 
       Id2Map.empty
   in 
+  let agents = IdMap.map (fun y -> IdSet.fold (fun x -> IdSet.add (f_id x)) y IdSet.empty) remanent.agents
+  in 
   let remanent = 
     {remanent with 
+      agents = agents;
       edges = edges ;
       items = items ;
       nitems = nitems }
@@ -1015,6 +1023,13 @@ let fuse remanent remanent' =
 
       remanent.items remanent'.items 
   in 
+  let agents  = 
+    fuse IdMap.fold2 IdMap.add 
+      (fun x y z map -> 
+	if y==z then map 
+	else IdMap.add x (IdSet.union y z) map)
+      remanent.agents remanent'.agents
+  in 
   let edges = 
     fuse Id2Map.fold2 Id2Map.add 
       (fun x y z map -> if y==z then map 
@@ -1023,6 +1038,7 @@ let fuse remanent remanent' =
   { 
     remanent 
     with 
+      agents = agents ;
       nitems = nitems ; 
       edges=edges ;
       items = items ;
@@ -1275,8 +1291,8 @@ let tag_flow_from graph1 ag s s' graph2 =
 				    | None -> []
 				    | Some l -> l 
 				  in 
-				  Id2Map.add (id1',id2') 
-				    ({edge_elt with tags = TagMap.add s' i (TagMap.remove s edge_elt.tags)}::old_l) edge2)
+				    Id2Map.add (id1',id2') 
+				      ({edge_elt with tags = TagMap.add s' i (TagMap.remove s edge_elt.tags)}::old_l) edge2)
 				edge2 id2_list')
 			    edge2 id1_list'
 			end)
@@ -1331,8 +1347,9 @@ let site_map_from_agent_list graph1 graph2 l =
 	end
     )
     IdMap.empty l 
-	
-let proj_rule_flow_on_a_species ?file:(s="") ?angle:(angle = 90.)  ?flow:(flow=[]) rule species l =
+
+
+let proj_flow_on_a_species ?file:(s="") ?padding:(padding=1.) ?angle:(angle = e)  ?flow:(flow=[]) rule species l =
   let rule = add_flow_list flow rule in 
   let xm,xM,ym,yM = 
     match 
@@ -1348,17 +1365,15 @@ let proj_rule_flow_on_a_species ?file:(s="") ?angle:(angle = 90.)  ?flow:(flow=[
       None -> 0.,0.,0.,0.
     | Some (xm,xM,ym,yM) -> xm,xM,ym,yM 
   in 
-  let angle = sample_angle (of_degree angle) in 
-  let distance = (rule.config.flow_padding)*. ((xM-.xm)*.(sin (to_radius angle)) +. (yM-.ym)*.(cos (to_radius angle))) in 
+  let angle = sample_angle angle in 
+  let padding = rule.config.flow_padding *. padding in 
+  let distance = padding*. ((xM-.xm)*.(sin (to_radius angle)) +. (yM-.ym)*.(cos (to_radius angle))) in 
   let rulex,ruley,deltax,deltay = compute_padding (xm,xM,ym,yM) (xm',xM',ym',yM') angle distance in 
   let rule = rename_tag "flow" "rule_flow" rule in 
   let agent_map = 
     List.fold_left (fun map (x,y) -> IdMap.add x y map) IdMap.empty l in 
   let site_map = site_map_from_agent_list rule species l in 
   let species = tag_flow_from rule site_map "rule_flow" "sp_flow" species in 
-  let _ = dump (s^"5.dot") ["sp_flow",1] species in 
-  let _ = dump (s^"6.dot") ["sp_flow",2] species in 
-  
   let sigma_rule,sigma_sp,rule_species = disjoint_union rule (translate_graph {abscisse=deltax;ordinate=deltay} species) in 
   let rule_species_with_proj = 
     add_proj
@@ -1372,6 +1387,35 @@ let proj_rule_flow_on_a_species ?file:(s="") ?angle:(angle = 90.)  ?flow:(flow=[
       let _ = dump (s^"1.dot") ["rule_flow",1;"sp_flow",0] rule_species in 
       let _ = dump (s^"2.dot") ["rule_flow",1;"sp_flow",0] rule_species_with_proj in 
       let _ = dump (s^"3.dot") ["rule_flow",1;"sp_flow",1] rule_species_with_proj in 
-      let _ = dump (s^"4.dot") ["rule_flow",1;"sp_flow",1] rule_species_with_proj in 
+      let _ = dump (s^"4.dot") ["rule_flow",1;"sp_flow",1] rule_species in 
       () 
-  in sigma_rule,sigma_sp,rule_species,rule_species_with_proj,rule_species_with_proj,rule_species,rule_species
+  in sigma_rule,sigma_sp,rule_species,rule_species_with_proj
+
+let proj_flow_on_a_contact_map ?file:(s="") ?padding:(padding=1.) ?angle:(angle = e)  ?flow:(flow=[]) rule contact_map =
+  let agent_map = 
+    IdMap.fold2z
+      (fun x y z map -> 
+	IdSet.fold 
+	  (fun x map  -> 
+	    IdSet.fold 
+	      (fun y map  -> (x,y)::map)
+	      z 
+	      map
+	  ) 
+	  y 
+	  map 
+      )
+      (fun x y map -> map)
+      (fun x y map -> map)
+      rule.agents
+      contact_map.agents 
+      []
+  in 
+  proj_flow_on_a_species ~file:s ~angle:angle 
+    ~padding:padding 
+    ~flow:flow 
+    rule 
+    contact_map
+    agent_map 
+
+    
