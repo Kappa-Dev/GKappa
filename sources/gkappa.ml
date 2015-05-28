@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-12 11:27:53 feret>
+ * Last modification: Time-stamp: <2015-05-27 23:23:37 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -17,6 +17,28 @@
 
 
 open Geometry
+
+let escaped s = 
+  let s = String.escaped s in 
+  let n = String.length s in 
+  let rec aux i k l = 
+    if i=n then l 
+    else 
+      if s.[i]='\\'
+      then 
+	if k then aux (i+1) false (i::l)
+	else aux (i+1) true l
+      else 
+	aux (i+1) false l 
+  in 
+  let list = List.rev (aux 0 false []) in 
+  let rec aux k list list2 = 
+    match list with 
+    | t::q -> 
+	aux (t+1) q ((String.sub s k (t-k))::list2)
+    | [] -> List.rev ((String.sub s k (n-k))::list2)
+  in String.concat "" (aux 0 list [])
+    
 
 (*%module GKappa = 
 %  struct 
@@ -85,20 +107,47 @@ type config =
     color_agents: bool;
     color_sites: bool;
     color_states: bool ;
-    site_radius: float ;
+    site_width: float ;
+    site_height: float ;
+    state_width: float ;
+    state_height: float ;
+    agent_width: float;
+    agent_height: float;
     agent_colors: string list ;
     site_colors: string list ;
     state_colors: string list ;
     pi : float ;
     free_width : float ;
     free_height : float ;
-    bound_height : float ;
-    rule_length : float ;
+    bound_height : float ; 
+    rule_length: float ;
     rule_width: int;
+    link_width: int;
+    pairing_width: int;
+    projection_width: int;
     cross_width: int;
-    edge_label_font:int;
+    agent_label_font: int; 
+    site_label_font: int;
+    state_label_font: int;
+    dummy_font: int;
+    edge_label_font: int;
+    rule_color:string;
+    rule_style:string;
+    projection_color:string ;
+    projection_style: string;
+    pairing_style: string;
+    pairing_color:string ;
+    weak_flow_style: string;
+    weak_flow_color:string ;
+    weak_flow_width:int;
+    strong_flow_style: string;
+    strong_flow_color:string ;
+    flow_style: string;
+    flow_color:string ;
     rule_margin: float;
     flow_padding: float;
+    flow_width: int;
+    strong_flow_width: int;
   }
     
 type intset = IntSet.t 
@@ -183,58 +232,88 @@ let dummy_item =
     
   }
     
-let dummy_agent_type =
+let dummy_agent_type config =
   { 
     dummy_item 
     with
       kind = Agent_type ;
-      style = "filled" ;
-      width = 2.;
-      height = 1.;
-      fontsize = 20; 
+      style = "filled";
+      width = config.agent_width;
+      height = config.agent_height;
+      fontsize = config.agent_label_font ; 
   }
 	
-let dummy_site_name = 
+let dummy_site_name config = 
   { 
     dummy_item with 
       kind = Site_type ;
-      style = "filled" ;
-      width = 0.4;
-      height = 0.4;
-      fontsize = 14; 
+      style = "filled";
+      width = config.site_width ;
+      height = config.site_height ;
+      fontsize = config.site_label_font; 
       scale_factor = 1.05
   }
 	
-let dummy_state_kind = 
+let dummy_state_kind config = 
   { 
     dummy_item with 
       kind = State_type ;
-      style = "filled" ; 
-      width = 0.1;
-      height = 0.1;
-      fontsize = 10; 
+      style = "filled"; 
+      width = config.state_width ;
+      height = config.state_height ;
+      fontsize = config.state_label_font ;
   }
 	
-let link = {dummy_item with kind = Link ; width = 2.}
-let pairing  = {link with style = "dashed" ; color = "cyan"}
-let projection = {pairing with forward = true}
-let rule = { link with forward = true ; kind = Rule}
-let weak_flow = 
-  { link 
+let link config = 
+  {
+    dummy_item 
+   with kind = Link ; 
+     width = (float_of_int config.link_width)
+  }
+let pairing config = 
+  {
+    (link config)
+   with style = config.pairing_style ; 
+     color = config.pairing_color ; 
+     width = (float_of_int config.pairing_width)}
+let projection config = 
+  {
+    (pairing config) 
+   with forward = true ; 
+     style = config.projection_style ; 
+     color = config.projection_color ; 
+     width = (float_of_int config.projection_width)}
+let rule config = 
+  { (link config)
+    with forward = true ; 
+      kind = Rule ; 
+      width = (float_of_int config.rule_width) ; 
+      color = config.rule_color ; style = config.rule_style }
+let weak_flow config = 
+  { (link config)
     with 
       priority = 2;
       forward = true;
-      color = "cyan";
+      color = config.weak_flow_color;
+      style = config.weak_flow_style ;
+      width = (float_of_int config.weak_flow_width); 
       tags = TagMap.add "flow" (IntSet.add 1 (IntSet.add 2 IntSet.empty)) TagMap.empty}
 
-let flow = 
-  { weak_flow with 
-    priority = 3;
-    color = "red" ;
-    tags = TagMap.add "flow" (IntSet.add 1 IntSet.empty) TagMap.empty}
+let flow config = 
+  { (weak_flow config) 
+    with 
+      priority = 3;
+      color = config.flow_color;
+      style = config.flow_style ;
+      width = (float_of_int config.flow_width); 
+      tags = TagMap.add "flow" (IntSet.add 1 IntSet.empty) TagMap.empty}
 	
-let strong_flow = 
-  {flow with 
+let strong_flow config = 
+  { (flow config)
+    with 
+    color = config.strong_flow_color;
+    style = config.strong_flow_style ;
+    width = (float_of_int config.strong_flow_width); 
     tags = TagMap.add "flow" (IntSet.add 2 IntSet.empty) TagMap.empty}
 	
   
@@ -332,7 +411,7 @@ let rec parse_attributes p s att item =
       else 
 	begin 
 	  match t with 
-	  | Comment s -> {item with comment = s}
+	  | Comment s -> {item with comment = escaped s}
 	  | FillColor s -> {item with fillcolor = s}
 	  | Color s -> {item with color = s}
 	  | Fontsize i -> {item with fontsize = i}
@@ -360,10 +439,10 @@ let add_sig f item remanent =
 
 let p_agent_type x =
   match x with 
-  | Comment _ | Tag _ | Direction _ | Scale _ | Set_scale _ ->  false 
-  | Radius _ | Shape _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true 
-
-
+  | Comment _ | Tag _ | Direction _ ->  false 
+  | Set_scale _ | Scale _ | Radius _ | Shape _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true 
+    
+    
 let p_site_type x = 
   match x with 
   | Comment _ | Tag _ -> false  
@@ -402,9 +481,9 @@ let compose_lift (ag1,site1,state1) (ag2,site2,state2) =
 let add_agent_type name attributes remanent = 
   let ag_c = remanent.nagent_sig_items +1 in 
   let remanent = {remanent with nagent_sig_items = ag_c} in 
-  let f id item = {item with label = name} in 
+  let f id item = {item with label = escaped name} in 
   let agent_sig = 
-    parse_attributes p_agent_type "agent type" attributes {dummy_agent_type  with fillcolor = n_modulo (remanent.config.agent_colors) ag_c}
+    parse_attributes p_agent_type "agent type" attributes {(dummy_agent_type remanent.config)  with fillcolor = n_modulo  (remanent.config.agent_colors) ag_c }
   in 
   add_sig f agent_sig remanent 
 
@@ -433,7 +512,7 @@ let add_son_type father error1 error2 error3 name dummy attributes p color_list 
       parse_attributes p error3 attributes {dummy with fillcolor = color ; orientation = angle}
     in 
     let sibbling_item = 
-      {sibbling_item with father = Some father ; label = name }
+      {sibbling_item with father = Some father ; label = escaped name }
     in 
     let s_id,remanent = add_sig (fun _ x -> x) sibbling_item remanent in 
     let father_item = 
@@ -443,9 +522,9 @@ let add_son_type father error1 error2 error3 name dummy attributes p color_list 
     s_id,{remanent with sig_items = IdMap.add father father_item remanent.sig_items}
 
 let add_site_type agent_type name attributes remanent = 
-  add_son_type agent_type "add_site_type" "a site" "agent" name dummy_site_name  attributes p_site_type remanent.config.site_colors remanent 
+  add_son_type agent_type "add_site_type" "a site" "agent" name (dummy_site_name remanent.config) attributes p_site_type remanent.config.site_colors remanent 
       
-let add_internal_state_type site_type state attributes remanent = add_son_type site_type "add_internal_state_type" "an internal state" "site" state dummy_state_kind attributes p_state_type remanent.config.state_colors remanent 
+let add_internal_state_type site_type state attributes remanent = add_son_type site_type "add_internal_state_type" "an internal state" "site" state (dummy_state_kind remanent.config) attributes p_state_type remanent.config.state_colors remanent 
 
 let name_of_node id remanent = 
   let rec aux id list = 
@@ -473,7 +552,7 @@ let name_of_node id remanent =
     | Some x -> (string_of_node_kind x.kind),list
   in 
     List.fold_left
-      (fun s (i,l) -> s^"_"^l^"_"^(string_of_int i))
+      (fun s (i,l) -> s^"_"^(string_of_int i))
       prefix list 
       
 let add_node f item remanent = 
@@ -487,7 +566,7 @@ let add_node f item remanent =
      nitems = id
   }
 
-let add_agent agent_type  abs ord attributes remanent = 
+let add_agent agent_type abs ord attributes remanent = 
   match 
     IdMap.find_option agent_type remanent.sig_items 
   with 
@@ -517,8 +596,19 @@ let add_son father son_type kind error1 error2 error3 attributes p remanent =
     let _ = Printf.fprintf stderr "ERROR: in %s, dandling pointer\n" error1 
     in dummy_id,remanent
   | Some item,Some father_item -> 
-    let item = parse_attributes p error3 attributes {item with tags = father_item.tags ; orientation = match kind with State _ -> father_item.orientation | _ -> item.orientation } in 
-    let site_center = point_on_ellipse father_item.coordinate father_item.width father_item.height item.orientation item.scale_factor in 
+    let item = parse_attributes p error3 attributes {item with tags = father_item.tags ; orientation = match kind with State _ -> father_item.orientation | _ -> item.orientation  } in 
+    let site_center = 
+      (match father_item.shape 
+      with 
+      | "hexagone" -> point_on_hexagone
+      | "rectangle" | "square" -> point_on_rectangle 
+      | _ -> point_on_ellipse) 
+	father_item.coordinate 
+	(father_item.width *. father_item.scale_factor)
+	(father_item.height *. father_item.scale_factor)
+	item.orientation 
+	item.scale_factor 
+    in 
     let item = {item with father = Some father ; kind = kind ; label = item.label ; coordinate = site_center ; sibblings = IdMap.empty } in 
     let s_id,remanent = add_node (fun _ x -> x) item remanent in 
     let father_item = { father_item with sibblings = add_sibbling s_id son_type father_item.sibblings } in 
@@ -568,16 +658,16 @@ let rec add_link edge n1 n2 remanent =
 
       
 let add_relation relation = add_link relation 
-let add_match_elt = add_link pairing
-let add_proj_elt = add_link projection 
-let add_edge = add_relation link 
-let add_weak_flow_and_link x y z = add_relation weak_flow x y (add_edge x y z)
-let add_flow_and_link x y z = add_relation flow x y (add_weak_flow_and_link x y z)
-let add_strong_flow_and_link (x:site) y z = add_relation strong_flow x y (add_flow_and_link x y z)
+let add_match_elt config = add_link (pairing config)
+let add_proj_elt config = add_link (projection config)
+let add_edge x y z = add_relation (link z.config) x y z 
+let add_weak_flow_and_link x y z = add_relation (weak_flow z.config) x y (add_edge  x y z)
+let add_flow_and_link x y z = add_relation (flow z.config) x y (add_weak_flow_and_link x y z)
+let add_strong_flow_and_link x y z = add_relation (strong_flow z.config) x y (add_flow_and_link x y z)
   
-let add_weak_flow = add_relation weak_flow 
-let add_flow x y z = add_relation flow x y (add_weak_flow x y z)
-let add_strong_flow x y z = add_relation strong_flow x y (add_flow x y z)
+let add_weak_flow x y z = add_relation (weak_flow z.config) x y z 
+let add_flow x y z = add_relation (flow z.config) x y (add_weak_flow x y z)
+let add_strong_flow x y z = add_relation (strong_flow z.config) x y (add_flow x y z)
   
 let color_of_edge e = e.color
   
@@ -595,7 +685,7 @@ let add_free site_id attributes remanent =
   | Some site -> 
     let item = {dummy_item  with father = Some site_id ; orientation = site.orientation ; width = remanent.config.free_width ; height = remanent.config.free_height ; tags = site.tags } in 
     let item = parse_attributes p_free "add_free" attributes item in 
-    let free_center1 = point_on_ellipse_ext site.coordinate site.width site.height item.orientation 1. item.height in 
+    let free_center1 = point_on_ellipse_ext site.coordinate site.width site.height item.orientation site.scale_factor item.height in 
     let free_center2 = point_on_ellipse_ext free_center1 0. 0. (clockwise item.orientation 90.) 1. (item.width/.2.) in 
     let free_center3 = point_on_ellipse_ext free_center1 0. 0. (anticlockwise item.orientation 90.)  1. (item.width/.2.) in 
     let node = {item with width = 0. ; height = 0. ; color = "white" ; style = "" } in 
@@ -619,7 +709,7 @@ let add_bound site_id attributes remanent =
     let item = parse_attributes p_bound "add_bound" attributes item in 
     let fillcolor = item.fillcolor in 
     let color = item.color in 
-    let bound_center = point_on_ellipse_ext site.coordinate site.width site.height item.orientation 1. item.height in 
+    let bound_center = point_on_ellipse_ext site.coordinate site.width site.height item.orientation item.scale_factor item.height in 
     let item = {item with height = 0. ; color = "white" ; fillcolor = "white" } in 
     let id1,remanent = add_node (fun _ x -> x) {item with coordinate = bound_center ; kind = Bound} remanent in 
     let remanent = add_link {item with kind = Bound_symbol ; width = 0. ; height = 0. ; fillcolor = fillcolor ; color = color}  site_id id1 remanent in 
@@ -657,12 +747,12 @@ let filter_tags list map =
   def list true (fun (s,i) set -> IntSet.mem i set) fst 
     
 let dump_edge log (s1,s2) edge remanent = 
-  Printf.fprintf log "%s -> %s [dir = \"%s\",color=\"%s\",penwidth=%s,label=\"%s\",fontsize=%i,style=\"%s\"];\n" s1 s2 (dir_of_edge edge) (color_of_edge edge) (pen_width_of edge) (edge.comment) (remanent.config.edge_label_font) (edge.style)
+  Printf.fprintf log "%s -> %s [dir = \"%s\",color=\"%s\",penwidth=%s,label=\"%s\",style=\"%s\"];\n" s1 s2 (dir_of_edge edge) (color_of_edge edge) (pen_width_of edge) (edge.comment)  (edge.style)
     
     
 let dump_node log filter filter_label filter_color node remanent = 
   Printf.fprintf log 
-    "fixedsize=true,\nlabel = \"%s\",\nfontsize=%i,\npos=\"%f,%f!\",\nwidth=%f,\nheight=%f,\nshape=\"%s\",\nstyle=\"%s\",\nfillcolor=%s,\ncolor=%s\n" (filter_label node.label) node.fontsize node.coordinate.abscisse node.coordinate.ordinate node.width node.height node.shape node.style (filter_color node.fillcolor) node.color
+    "fixedsize=true,\nlabel = \"%s\",\nfontsize=%i,\npos=\"%g,%g!\",\nwidth=%f,\nheight=%f,\nshape=\"%s\",\nstyle=\"%s\",\nfillcolor=%s,\ncolor=%s\n" (filter_label node.label) node.fontsize node.coordinate.abscisse node.coordinate.ordinate (node.width*.node.scale_factor)  (node.height*.node.scale_factor)  node.shape node.style (filter_color node.fillcolor)  node.color
     
 let dump_node chan filter remanent node_id node =
   let tags = node.tags in 
@@ -670,7 +760,7 @@ let dump_node chan filter remanent node_id node =
     match 
       node.kind 
     with 
-    | Agent _ -> filter_label_in_agent,filter_color_in_state 
+    | Agent _ -> filter_label_in_agent,filter_color_in_agent
     | Site _ -> filter_label_in_site,filter_color_in_site
     | State _ -> filter_label_in_state, filter_color_in_state 
     | _ -> (fun _ x ->x),(fun _ x ->x)
@@ -1056,12 +1146,12 @@ let disjoint_union remanent remanent' =
     
 let add_match l remanent =  
   List.fold_left 
-    (fun remanent (x,y) -> add_match_elt x y remanent) remanent l 
+    (fun remanent (x,y) -> add_match_elt remanent.config x y remanent) remanent l 
     
     
 let add_proj l remanent = 
   List.fold_left 
-    (fun remanent (x,y) -> add_proj_elt x y remanent) remanent l 
+    (fun remanent (x,y) -> add_proj_elt remanent.config x y remanent) remanent l 
     
 let add_emb list remanent = remanent
 let disjoint_union_with_match remanent remanent = 
@@ -1138,7 +1228,8 @@ let add_rule x y directives remanent =
   | Some node1,Some node2
     -> 
     add_link 
-      {rule with width = item.width ; comment = item.comment ;
+      {(rule remanent.config) 
+       with width = item.width ; comment = item.comment ;
 	color = item.color ; tags = item.tags } node_id2 node_id1 remanent 
       
 let cross remanent = 
@@ -1161,7 +1252,9 @@ let cross remanent =
     let node_id4,remanent = 
       add_dummy_agent "cross" x' y' directives remanent
     in 
-    let edge = {rule with 
+    let edge = 
+      {(rule remanent.config) 
+       with 
 	    forward = false ; width = width ; comment = comment ;
 	    color = "red" ; tags = TagMap.empty }
     in 

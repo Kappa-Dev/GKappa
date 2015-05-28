@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-08 06:08:15 feret>
+ * Last modification: Time-stamp: <2015-05-27 23:03:57 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -40,9 +40,9 @@ let remanent,
   [
     "",[FillColor "white";Width 0.8;Height 0.8;Shape "rectangle"],
     [
-      "g",[FillColor "green";Radius 0.4;Direction sw;Scale 1.2],["gu",[];"gp",[]];
+      "g",[FillColor "green";Radius 0.4;Direction sw],["gu",[];"gp",[]];
       "c",[FillColor "red";Radius 0.4;Direction n],["cu",[];"cp",[]];
-      "d",[FillColor "blue";Radius 0.4;Direction se;Scale 1.2],["du",[];"dp",[]]
+      "d",[FillColor "blue";Radius 0.4;Direction se],["du",[];"dp",[]]
     ]
   ]
 
@@ -126,7 +126,7 @@ let _,_,tmp =
 
 let reaction_c = 
   translate_graph {abscisse = 2. ; ordinate =  0.} (add_rule 1.1 0. 
-    [Comment("kc");Height 0.6] tmp)
+    [Comment("$\ky$");Height 1.2] tmp)
 
 
 let _,_,tmp =  
@@ -134,38 +134,38 @@ let _,_,tmp =
     (move_remanent_right_to 0.6 upp upp)
 let reaction_du = 
   add_rule 1.1 0. 
-    [Comment("kd");Height 0.6] tmp 
+    [Comment("$\kz$");Height 0.6] tmp 
 let _,_,tmp =  
   disjoint_union ppu 
     (move_remanent_right_to 0.6 ppp ppp)
 let reaction_dp = 
   add_rule 1.1 0. 
-    [Comment("kd");Height 0.6] tmp 
+    [Comment("$\kz$");Height 0.6] tmp 
 let _,_,tmp =  
   disjoint_union upu 
     (move_remanent_right_to 0.6 ppu ppu)
 
 let reaction_gu = 
   add_rule 1.1 0. 
-    [Comment("kg");Height 0.6] tmp 
+    [Comment("$\kx$");Height 0.6] tmp 
 let _,_,tmp =  
   disjoint_union upp
     (move_remanent_right_to 0.6 ppp ppp)
 let reaction_gp = 
   add_rule 1.1 0. 
-    [Comment("kg");Height 0.6] tmp 
+    [Comment("$\kx$");Height 0.6] tmp 
 
 
-let _ = dump "hier_reaction_c.dot" [] reaction_c
-let _ = dump "hier_reaction_du.dot" [] reaction_du
-let _ = dump "hier_reaction_dp.dot" [] reaction_dp
-let _ = dump "hier_reaction_gu.dot" [] reaction_gu
-let _ = dump "hier_reaction_gp.dot" [] reaction_gp
+let _ = dump "hier_reaction_c.ladot" [] reaction_c
+let _ = dump "hier_reaction_du.ladot" [] reaction_du
+let _ = dump "hier_reaction_dp.ladot" [] reaction_dp
+let _ = dump "hier_reaction_gu.ladot" [] reaction_gu
+let _ = dump "hier_reaction_gp.ladot" [] reaction_gp
 
-let _,_,reaction_d = disjoint_union reaction_du (move_remanent_right_to 2. reaction_dp reaction_du)
-let _,_,reaction_g = disjoint_union reaction_gu (move_remanent_right_to 2. reaction_gp reaction_gu)
-let _ = dump "hier_reaction_d.dot" [] reaction_d
-let _ = dump "hier_reaction_g.dot" [] reaction_g
+let _,_,reaction_d = disjoint_union reaction_du (move_remanent_right_to 1. reaction_dp reaction_du)
+let _,_,reaction_g = disjoint_union reaction_gu (move_remanent_right_to 1. reaction_gp reaction_gu)
+let _ = dump "hier_reaction_d.ladot" [] reaction_d
+let _ = dump "hier_reaction_g.ladot" [] reaction_g
 
 let _,_,reactions = 
   disjoint_union 
@@ -175,23 +175,23 @@ let _,_,reactions =
 let _,_,reactions = 
   disjoint_union 
     reactions
-    (move_remanent_bellow 1.5 reaction_g reactions)
+    (move_remanent_bellow 0. reaction_g reactions)
 
-let _ = dump "hier_reactions.dot" [] reactions
+let _ = dump "hier_reactions.ladot" [] reactions
 
 let _,_,tmp =  
   disjoint_union upn
     (move_remanent_right_to 0.75 ppn ppn)
 let reaction_gn = 
   add_rule 1.3 0. 
-    [Comment("kg");Height 0.6] tmp 
+    [Comment("$\kx$");Height 0.6] tmp 
 let _,_,tmp =  
   disjoint_union npu
     (move_remanent_right_to 0.6 npp npp)
 let reaction_dn = 
   add_rule 1.3 0. 
-    [Comment("kd");Height 0.6] tmp 
-let _ = dump "hier_reaction_gn.dot" [] reaction_gn
-let _ = dump "hier_reaction_dn.dot" [] reaction_dn
+    [Comment("$\kz$");Height 0.6] tmp 
+let _ = dump "hier_reaction_gn.ladot" [] reaction_gn
+let _ = dump "hier_reaction_dn.ladot" [] reaction_dn
  
 

@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-04-05 feret>
- * Last modification: Time-stamp: <2015-04-08 07:59:31 feret>
+ * Last modification: Time-stamp: <2015-05-27 15:17:52 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -86,6 +86,57 @@ let sample_angle x =
 	
  let point_on_ellipse center width height direction scale = 
       point_on_ellipse_ext center width height direction scale 0.
+
+  let point_on_rectangle_ext center width height  direction scale delta = 
+      let angle = mod_angle direction.radius in 
+      let angle_rectangle = atan (width/.height) in 
+      if angle <= angle_rectangle 
+      then {
+	ordinate = center.ordinate +. (height *. 0.5 *. scale +. delta) ; 
+	abscisse = center.abscisse +. (height *. 0.5 *. (tan angle) *. scale +.delta) }
+      else if angle <= pi -. angle_rectangle 
+      then {
+	abscisse = center.abscisse +. (width *. 0.5 *.scale +. delta) ; 
+	ordinate = center.ordinate +. (width *. 0.5 *. (tan angle) *. scale +. delta) }
+      else if angle < pi +. angle_rectangle 
+      then  {
+	ordinate = center.ordinate -. (height *. 0.5 *. scale +. delta) ; 
+	abscisse = center.abscisse -. (height *. 0.5 *. (tan angle) *. scale +. delta)}
+      else {
+	abscisse = center.abscisse -. (width *. 0.5 *.scale +. delta) ; 
+        ordinate = center.ordinate -. (width *. 0.5 *. scale *. (tan angle) +. delta) }
+	
+ let point_on_rectangle center width height direction scale = 
+      point_on_rectangle_ext center width height direction scale 0. 
+
+let point_on_hexagone_ext center width height  direction scale delta = 
+      let angle = mod_angle direction.radius in 
+      if width > height 
+      then 
+	begin 
+	  if angle <= pi/.4. 
+	    ||
+	      (angle >= 3./.4.*.pi && angle <= 5./.4.*.pi)
+	    || angle >= 7./.4.*.pi 
+	  then 
+	    point_on_rectangle_ext center height height direction scale delta
+	  else
+	     point_on_ellipse_ext center width height direction scale delta
+	end
+      else 
+	begin 
+	   if (angle >= pi/.4. && angle <= 3./.4.*.pi)
+	    ||
+	      (angle >= 5./.4.*.pi && angle <= 7./.4.*.pi)
+	  then 
+	    point_on_rectangle_ext center width width direction scale delta
+	  else 
+	     point_on_ellipse_ext center width height direction scale delta
+	end 
+	
+	
+ let point_on_hexagone center width height direction scale = 
+      point_on_hexagone_ext center width height direction scale 0.
 
 
  let translate x y = 

@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-04-08 07:29:01 feret> 
+ * Last modification: Time-stamp: <2015-05-28 06:35:45 feret> 
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -48,6 +48,6 @@ let _,_,_,remanent =
 				     lift_site sigma2 egfr1_r,[]] remanent))
   (fun remanent -> 
     ([],[],[]),add_link_list [lift_site sigma1 egfr1_r,lift_site sigma2 egfr1_r] remanent)
-    [Comment "k"]
+    [Comment "$\assobis{}$"]
     
-let _ = dump "dimerisation.dot" [] remanent 
+let _ = dump "dimerisation.ladot" [] remanent 

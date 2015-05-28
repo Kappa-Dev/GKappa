@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation: March, the 28th of 2015
- * Last modification: Time-stamp: <2015-04-12 11:07:01 feret>
+ * Last modification: Time-stamp: <2015-04-15 09:12:01 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -28,7 +28,12 @@ type config =
     color_agents: bool;
     color_sites: bool;
     color_states: bool ;
-    site_radius: float ;
+    site_width: float ;
+    site_height: float ;
+    state_width: float ;
+    state_height: float ;
+    agent_width: float;
+    agent_height: float;
     agent_colors: string list ;
     site_colors: string list ;
     state_colors: string list ;
@@ -38,10 +43,32 @@ type config =
     bound_height : float ; 
     rule_length: float ;
     rule_width: int;
+    link_width: int;
+    pairing_width: int;
+    projection_width: int;
     cross_width: int;
+    agent_label_font: int; 
+    site_label_font: int;
+    state_label_font: int;
+    dummy_font: int;
     edge_label_font: int;
+    rule_color:string;
+    rule_style:string;
+    projection_color:string ;
+    projection_style: string;
+    pairing_style: string;
+    pairing_color:string ;
+    weak_flow_style: string;
+    weak_flow_color:string ;
+    weak_flow_width:int;
+    strong_flow_style: string;
+    strong_flow_color:string ;
+    flow_style: string;
+    flow_color:string ;
     rule_margin: float;
-      flow_padding: float
+    flow_padding: float;
+    flow_width: int;
+    strong_flow_width: int;
   }
 
 type tag = string 
