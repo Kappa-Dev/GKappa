@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-05-27 23:23:37 feret>
+ * Last modification: Time-stamp: <2015-06-09 09:57:28 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -787,6 +787,21 @@ let dump_edge_list chan filter remanent (n1,n2) l =
     in 
     let n1 = name_of_node n1 remanent in 
     let n2 = name_of_node n2 remanent in 
+    let n1,n2 = 
+      if node1 == node2 
+      then 
+	let angle = node1.orientation.radius in 
+	let suffix = 
+	  if angle < pi/.4. then ":n"
+	  else if angle < 3.*.pi/.4. then ":e"
+	  else if angle < 5.*.pi/.4. then ":s"
+	  else if angle < 7.*.pi/.4. then ":w"
+	  else ":n"
+	in 
+	n1^suffix,n2^suffix
+      else
+	n1,n2
+    in 
     let threshold  = 
       List.fold_left
 	(fun threshold l -> 
