@@ -1581,7 +1581,6 @@ let insert_text_on_boarder list ?inside:(x=Outside) d  graph =
 	  (fun graph (s,_) -> insert_text_here s 0. 0. d graph)
 	  graph list 
   | Some (x_min,x_max,y_min,y_max) -> 
-    let _ = Printf.fprintf stdout "CORNERS: %f %f %f %f \n " x_min x_max y_min y_max in 
     let x = (x_min+.x_max)/.2. in 
     let y = (y_min+.y_max)/.2. in 
     let dx = x_max -. x_min in 

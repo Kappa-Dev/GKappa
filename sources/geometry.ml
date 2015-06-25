@@ -98,8 +98,6 @@ let sample_angle x =
  let correct_angle_on_rect width height  direction  = 
       let angle = mod_angle direction.radius in 
       let angle_rectangle = atan (width/.height) in 
-      let _ = Printf.fprintf stdout "rect: %f %f \n" width height in 
-      let _ = Printf.fprintf stdout "corre: %f %f\n" direction.degree (of_radius angle_rectangle).degree in 
       if angle <= pi/.4. 
       then 
 	of_radius (interpolation angle 0. (pi/.4.) 0. angle_rectangle)
@@ -113,19 +111,9 @@ let sample_angle x =
       else 
 	of_radius  (interpolation angle (7.*.pi/.4.) (2.*.pi) (2.*.pi-.angle_rectangle) (2.*.pi))
 
- let correct_angle_on_rect width height  direction  = 
-   let x = correct_angle_on_rect width height  direction in 
-   let _ = Printf.fprintf stdout "new_angle: %f\n" x.degree in 
-   x
-	  
-  let point_on_rectangle_ext center width height  direction scale delta = 
+let point_on_rectangle_ext center width height  direction scale delta = 
       let angle = mod_angle direction.radius in 
       let angle_rectangle = atan (width/.height) in 
-      let _ = Printf.fprintf stdout "center: %f %f\n" center.abscisse center.ordinate in 
-      let _ = Printf.fprintf stdout "size: %f %f\n" width height in 
-      let _ = Printf.fprintf stdout "scale: %f %f\n" scale delta in 
-      let _ = Printf.fprintf stdout "angle: %f %f\n" direction.degree (of_radius angle_rectangle).degree in 
-      let rep = 
       if angle <= angle_rectangle 
       then
 	{
@@ -133,26 +121,17 @@ let sample_angle x =
 	  abscisse = center.abscisse +. (height *. 0.5 *. scale +. delta) *. (tan angle) }
       else if angle <= pi -. angle_rectangle 
       then 
-	let _ = 
-	  Printf.fprintf stdout "CASE east \n" 
-	in 
-	{
+       	{
 	  abscisse = center.abscisse +. (width *. 0.5 *.scale +. delta) ; 
 	  ordinate = center.ordinate -. (width *. 0.5 *. scale +. delta) *. tan (angle -. (pi/.2.))}
       else if angle < pi +. angle_rectangle 
       then
-	let _ = 
-	  Printf.fprintf stdout "CASE south \n" 
-	in 
-	  {
+     	  {
 	ordinate = center.ordinate -. (height *. 0.5 *. scale +. delta) ; 
 	abscisse = center.abscisse +. (height *. 0.5 *. scale +. delta) *. (tan (angle -. pi))}
       else if angle < 2.*.pi -. angle_rectangle 
       then 
-	let _ = 
-	  Printf.fprintf stdout "CASE west \n" 
-	in 
-	  {
+      	  {
 	abscisse = center.abscisse -. (width *. 0.5 *.scale +. delta) ; 
         ordinate = center.ordinate +. (width *. 0.5 *. scale +. delta) *. (tan (angle -. 3.*.pi/.2.))
 	  }
@@ -160,13 +139,8 @@ let sample_angle x =
 	{
 	ordinate = center.ordinate +. (height *. 0.5 *. scale +. delta) ; 
 	abscisse = center.abscisse +. (height *. 0.5 *. scale +. delta) *. (tan angle)  }
-      in 
-      let _ = Printf.fprintf stdout "rep: %f %f\n" rep.abscisse rep.ordinate in 
-      rep 
- 
-
-	
- let point_on_rectangle center width height direction scale = 
+      	
+let point_on_rectangle center width height direction scale = 
       point_on_rectangle_ext center width height direction scale 0. 
 
 let point_on_hexagone_ext center width height  direction scale delta = 
@@ -232,7 +206,7 @@ let angle_of_index i =
 	  let x = bissec init b in 
 	  List.rev (b::x::res),List.rev (x::res2 )
 	| [] -> 
-	  let _ = Printf.fprintf stderr "Warning: no angle are provided in the config filte\n" in 
+	  let _ = Printf.fprintf stderr "Warning: no angle are provided in the config file\n" in 
 	  aux [n] ([],[])
       in 
       aux l ([],[])
