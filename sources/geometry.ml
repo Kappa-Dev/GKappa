@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-04-05 feret>
- * Last modification: Time-stamp: <2015-06-09 09:17:52 feret>
+ * Last modification: Time-stamp: <2015-06-25 11:36:21 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -44,12 +44,13 @@ type angle_decl = Radius of float | Degree of float
 let angle_of_decl x = 
   match x 
   with 
-    Radius x -> { radius=x;degree=(x*.360.)/.2.*.pi}
+    Radius x -> { radius=x;degree=(x*.360.)/.(2.*.pi)}
   | Degree x -> { radius=(x*.2.*.pi)/.360. ; degree=x}
 
 let to_degree x = x.degree 
 let of_degree x = angle_of_decl (Degree x)
 let to_radius x = x.radius 
+let of_radius x = angle_of_decl (Radius x) 
       
 let n =  of_degree 0.
 let ne = of_degree 45.
@@ -91,29 +92,79 @@ let sample_angle x =
  let point_on_ellipse center width height direction scale = 
       point_on_ellipse_ext center width height direction scale 0.
 
+ let interpolation x x_min x_max y_min y_max = 
+   y_min +. (x-.x_min)*.(y_max -.y_min)/.(x_max -. x_min)
+
+ let correct_angle_on_rect width height  direction  = 
+      let angle = mod_angle direction.radius in 
+      let angle_rectangle = atan (width/.height) in 
+      let _ = Printf.fprintf stdout "rect: %f %f \n" width height in 
+      let _ = Printf.fprintf stdout "corre: %f %f\n" direction.degree (of_radius angle_rectangle).degree in 
+      if angle <= pi/.4. 
+      then 
+	of_radius (interpolation angle 0. (pi/.4.) 0. angle_rectangle)
+      else if angle <= 3.*.pi/.4.
+      then 
+	of_radius (interpolation angle (pi/.4.) (3.*.pi/.4.) angle_rectangle (pi -. angle_rectangle))
+      else if angle <= 5.*.pi/.4. 
+      then of_radius (interpolation angle (3.*.pi/.4.) (5.*.pi/.4.) (pi-.angle_rectangle) (pi+.angle_rectangle))
+      else if angle <= 7.*.pi/.4. 
+      then of_radius  (interpolation angle (5.*.pi/.4.) (7.*.pi/.4.) (pi+.angle_rectangle) (2.*.pi-.angle_rectangle))
+      else 
+	of_radius  (interpolation angle (7.*.pi/.4.) (2.*.pi) (2.*.pi-.angle_rectangle) (2.*.pi))
+
+ let correct_angle_on_rect width height  direction  = 
+   let x = correct_angle_on_rect width height  direction in 
+   let _ = Printf.fprintf stdout "new_angle: %f\n" x.degree in 
+   x
+	  
   let point_on_rectangle_ext center width height  direction scale delta = 
       let angle = mod_angle direction.radius in 
       let angle_rectangle = atan (width/.height) in 
+      let _ = Printf.fprintf stdout "center: %f %f\n" center.abscisse center.ordinate in 
+      let _ = Printf.fprintf stdout "size: %f %f\n" width height in 
+      let _ = Printf.fprintf stdout "scale: %f %f\n" scale delta in 
+      let _ = Printf.fprintf stdout "angle: %f %f\n" direction.degree (of_radius angle_rectangle).degree in 
+      let rep = 
       if angle <= angle_rectangle 
-      then {
-	ordinate = center.ordinate +. (height *. 0.5 *. scale +. delta) ; 
-	abscisse = center.abscisse +. (height *. 0.5 *. (tan angle) *. scale +.delta) }
+      then
+	{
+	  ordinate = center.ordinate +. (height *. 0.5 *. scale +. delta) ; 
+	  abscisse = center.abscisse +. (height *. 0.5 *. scale +. delta) *. (tan angle) }
       else if angle <= pi -. angle_rectangle 
-      then {
-	abscisse = center.abscisse +. (width *. 0.5 *.scale +. delta) ; 
-	ordinate = center.ordinate +. (width *. 0.5 *. abstan (angle -. pi/.2.)*. scale +. delta) }
+      then 
+	let _ = 
+	  Printf.fprintf stdout "CASE east \n" 
+	in 
+	{
+	  abscisse = center.abscisse +. (width *. 0.5 *.scale +. delta) ; 
+	  ordinate = center.ordinate -. (width *. 0.5 *. scale +. delta) *. tan (angle -. (pi/.2.))}
       else if angle < pi +. angle_rectangle 
-      then  {
+      then
+	let _ = 
+	  Printf.fprintf stdout "CASE south \n" 
+	in 
+	  {
 	ordinate = center.ordinate -. (height *. 0.5 *. scale +. delta) ; 
-	abscisse = center.abscisse -. (height *. 0.5 *. (abstan (angle -. pi)) *. scale +. delta)}
+	abscisse = center.abscisse +. (height *. 0.5 *. scale +. delta) *. (tan (angle -. pi))}
       else if angle < 2.*.pi -. angle_rectangle 
-      then {
+      then 
+	let _ = 
+	  Printf.fprintf stdout "CASE west \n" 
+	in 
+	  {
 	abscisse = center.abscisse -. (width *. 0.5 *.scale +. delta) ; 
-        ordinate = center.ordinate -. (width *. 0.5 *. scale *. (tan (angle -. 2.*.pi +. angle_rectangle)) +. delta) }
+        ordinate = center.ordinate +. (width *. 0.5 *. scale +. delta) *. (tan (angle -. 3.*.pi/.2.))
+	  }
       else 
 	{
 	ordinate = center.ordinate +. (height *. 0.5 *. scale +. delta) ; 
-	abscisse = center.abscisse +. (height *. 0.5 *. (abstan angle) *. scale +.delta) }
+	abscisse = center.abscisse +. (height *. 0.5 *. scale +. delta) *. (tan angle)  }
+      in 
+      let _ = Printf.fprintf stdout "rep: %f %f\n" rep.abscisse rep.ordinate in 
+      rep 
+ 
+
 	
  let point_on_rectangle center width height direction scale = 
       point_on_rectangle_ext center width height direction scale 0. 

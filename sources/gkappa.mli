@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation: March, the 28th of 2015
- * Last modification: Time-stamp: <2015-04-15 09:12:01 feret>
+ * Last modification: Time-stamp: <2015-06-24 14:56:32 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -19,6 +19,7 @@ open Data_structures
 open Geometry 
 open StdLabels 
 
+type in_out = Inside | Outside 
 type config = 
   { 
     show_agent_names: bool;
@@ -47,6 +48,7 @@ type config =
     pairing_width: int;
     projection_width: int;
     cross_width: int;
+    txt_font: int;
     agent_label_font: int; 
     site_label_font: int;
     state_label_font: int;
@@ -166,3 +168,6 @@ val build_rule: remanent_state -> (remanent_state -> valuation * remanent_state)
 val proj_flow_on_a_species: ?file:string -> ?padding:float -> ?angle:angle -> ?flow:(site * site) list -> remanent_state -> remanent_state -> (agent * agent) list -> lift * lift * remanent_state * remanent_state 
 
 val proj_flow_on_a_contact_map: ?file:string -> ?padding:float -> ?angle:angle -> ?flow:(site * site) list -> remanent_state -> remanent_state -> lift * lift * remanent_state * remanent_state 
+
+val insert_text_here: string -> float -> float -> directive list -> remanent_state -> remanent_state
+val insert_text_on_boarder: (string * angle) list  -> ?inside:in_out -> directive list -> remanent_state -> remanent_state 

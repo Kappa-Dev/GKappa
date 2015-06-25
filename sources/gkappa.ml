@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-06-09 09:57:28 feret>
+ * Last modification: Time-stamp: <2015-06-25 15:08:04 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -18,7 +18,9 @@
 
 open Geometry
 
-let escaped s = 
+type in_out = Inside | Outside 
+
+let escaped s i = 
   let s = String.escaped s in 
   let n = String.length s in 
   let rec aux i k l = 
@@ -37,7 +39,16 @@ let escaped s =
     | t::q -> 
 	aux (t+1) q ((String.sub s k (t-k))::list2)
     | [] -> List.rev ((String.sub s k (n-k))::list2)
-  in String.concat "" (aux 0 list [])
+  in 
+  let s = String.concat "" (aux 0 list []) in 
+  match i with None -> s 
+  | Some i -> if n = 0 then s 
+  else if String.sub s 0 1 = "$"
+  then 
+    let n = String.length s in 
+    let s = String.sub s 1 (n-2) in 
+    "${\\fontsize{"^(string_of_int i)^"}{"^(string_of_int (int_of_float(floor  (float_of_int i*.1.2))))^"}\\selectfont \\ladottext{"^s^"}}$"
+  else s
     
 
 (*%module GKappa = 
@@ -126,6 +137,7 @@ type config =
     pairing_width: int;
     projection_width: int;
     cross_width: int;
+    txt_font: int;
     agent_label_font: int; 
     site_label_font: int;
     state_label_font: int;
@@ -333,7 +345,26 @@ type remanent_state =
     agents: IdSet.t IdMap.t
   }
 	
-	
+
+let dummy_txt_item config = 
+  { 
+    dummy_item with 
+      width = 1.;
+      height = 1.;
+      fontsize = config.txt_font;
+      priority = 1;
+      style = "";
+      comment = "";
+      kind = Dummy_node ;
+      father = None ;
+      sibblings = IdMap.empty ; 
+      label = "" ;
+      tags = TagMap.empty; 
+      n_sibblings=0;
+      shape = "plaintext";
+      scale_factor=1.;
+      orientation=n}
+
 let dummy_agent_item = 
   { 
     dummy_item with 
@@ -411,7 +442,7 @@ let rec parse_attributes p s att item =
       else 
 	begin 
 	  match t with 
-	  | Comment s -> {item with comment = escaped s}
+	  | Comment s -> {item with comment = escaped s None }
 	  | FillColor s -> {item with fillcolor = s}
 	  | Color s -> {item with color = s}
 	  | Fontsize i -> {item with fontsize = i}
@@ -436,6 +467,11 @@ let add_sig f item remanent =
      sig_items  = IdMap.add id item remanent.sig_items ; 
      nsig_items = id
   }
+
+let p_txt x = 
+  match x with 
+  | Comment _ | Tag _ | Direction _  | Set_scale _ | Scale _ | Radius _ | Shape _ | FillColor _ -> false 
+  | Color _ | Fontsize _  | Width _ | Height _ -> true 
 
 let p_agent_type x =
   match x with 
@@ -481,7 +517,7 @@ let compose_lift (ag1,site1,state1) (ag2,site2,state2) =
 let add_agent_type name attributes remanent = 
   let ag_c = remanent.nagent_sig_items +1 in 
   let remanent = {remanent with nagent_sig_items = ag_c} in 
-  let f id item = {item with label = escaped name} in 
+  let f id item = {item with label = escaped name (Some item.fontsize)} in 
   let agent_sig = 
     parse_attributes p_agent_type "agent type" attributes {(dummy_agent_type remanent.config)  with fillcolor = n_modulo  (remanent.config.agent_colors) ag_c }
   in 
@@ -512,7 +548,7 @@ let add_son_type father error1 error2 error3 name dummy attributes p color_list 
       parse_attributes p error3 attributes {dummy with fillcolor = color ; orientation = angle}
     in 
     let sibbling_item = 
-      {sibbling_item with father = Some father ; label = escaped name }
+      {sibbling_item with father = Some father ; label = escaped name (Some sibbling_item.fontsize)}
     in 
     let s_id,remanent = add_sig (fun _ x -> x) sibbling_item remanent in 
     let father_item = 
@@ -683,7 +719,7 @@ let add_free site_id attributes remanent =
     let _ = Printf.fprintf stderr "ERROR: in add_free the site does not exist\n" in 
     dummy_id,remanent 
   | Some site -> 
-    let item = {dummy_item  with father = Some site_id ; orientation = site.orientation ; width = remanent.config.free_width ; height = remanent.config.free_height ; tags = site.tags } in 
+    let item = {dummy_item  with shape = "plaintext" ; father = Some site_id ; orientation = site.orientation ; width = remanent.config.free_width ; height = remanent.config.free_height ; tags = site.tags } in 
     let item = parse_attributes p_free "add_free" attributes item in 
     let free_center1 = point_on_ellipse_ext site.coordinate site.width site.height item.orientation site.scale_factor item.height in 
     let free_center2 = point_on_ellipse_ext free_center1 0. 0. (clockwise item.orientation 90.) 1. (item.width/.2.) in 
@@ -705,7 +741,7 @@ let add_bound site_id attributes remanent =
     let _ = Printf.fprintf stderr "ERROR: in add_bound, the site does not exist\n" in 
     dummy_id,remanent 
   | Some site -> 
-    let item = {dummy_item  with father = Some site_id ; orientation = site.orientation ; height = remanent.config.bound_height ; kind = Bound ; fillcolor = "black" ; tags = site.tags } in 
+    let item = {dummy_item  with shape = "plaintext" ; father = Some site_id ; orientation = site.orientation ; height = remanent.config.bound_height ; kind = Bound ; fillcolor = "black" ; tags = site.tags } in 
     let item = parse_attributes p_bound "add_bound" attributes item in 
     let fillcolor = item.fillcolor in 
     let color = item.color in 
@@ -1015,7 +1051,7 @@ let corners remanent =
     (fun node pos ->
       let x,y=node.coordinate.abscisse,node.coordinate.ordinate in 
       let coords =
-	x-.node.width,x+.node.width,y-.node.height,y+.node.height
+	x-.node.width/.2.,x+.node.width/.2.,y-.node.height/.2.,y+.node.height/.2.
       in 
       match pos
       with None -> Some coords
@@ -1526,4 +1562,41 @@ let proj_flow_on_a_contact_map ?file:(s="") ?padding:(padding=1.) ?angle:(angle 
     contact_map
     agent_map 
 
-    
+let insert_text_here s x y d remanent = 
+   let item = parse_attributes p_txt "txt" d (dummy_txt_item remanent.config) in 
+   let item = 
+    {item 
+     with label = escaped s (Some item.fontsize) ; 
+    coordinate = {abscisse = x ; ordinate = y}}
+  in 
+  let f _ x = x in 
+  let id,remanent = add_node f item remanent in 
+  remanent
+
+let insert_text_on_boarder list ?inside:(x=Outside) d  graph = 
+  match corners graph 
+  with 
+  | None -> 
+	List.fold_left 
+	  (fun graph (s,_) -> insert_text_here s 0. 0. d graph)
+	  graph list 
+  | Some (x_min,x_max,y_min,y_max) -> 
+    let _ = Printf.fprintf stdout "CORNERS: %f %f %f %f \n " x_min x_max y_min y_max in 
+    let x = (x_min+.x_max)/.2. in 
+    let y = (y_min+.y_max)/.2. in 
+    let dx = x_max -. x_min in 
+    let dy = y_max -. y_min in 
+    List.fold_left 
+      (fun remanent (s,direction) -> 
+	let direction = Geometry.correct_angle_on_rect dx dy direction in 
+	let center = 
+	  point_on_rectangle 
+	    {abscisse=x;ordinate=y}
+	    dx
+	    dy 
+	    direction
+	    1.
+	in 
+	let _ = Printf.fprintf stdout "%f %f %f \n" dx dy (Geometry.to_degree direction) in 
+	insert_text_here s center.abscisse center.ordinate d remanent )
+      graph list 
