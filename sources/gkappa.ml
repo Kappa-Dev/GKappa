@@ -1596,6 +1596,5 @@ let insert_text_on_boarder list ?inside:(x=Outside) d  graph =
 	    direction
 	    1.
 	in 
-	let _ = Printf.fprintf stdout "%f %f %f \n" dx dy (Geometry.to_degree direction) in 
 	insert_text_here s center.abscisse center.ordinate d remanent )
       graph list 
