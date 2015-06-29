@@ -19,6 +19,7 @@
  
 include Gkappa
 
+		  
 let config = 
   {
     agent_colors = ["magenta";"blue";"green";"purple";"darkgreen";]; 
@@ -46,6 +47,7 @@ let config =
     cross_width = 5 ; 
     edge_label_font = 50 ;
     link_width = 2 ;
+    empty_graph = "";    
     pairing_style = "dashed";
     pairing_color = "cyan";
     pairing_width = 2;
@@ -55,6 +57,7 @@ let config =
     strong_flow_color = "red";
     strong_flow_style = "";
     flow_style = "";
+    binding_type_font = 10 ;
     agent_label_font = 20 ; 
     site_label_font = 14;
     state_label_font = 10 ;
@@ -65,9 +68,13 @@ let config =
     projection_width = 2;
     rule_color = "black";
     rule_style = "" ;
-    projection_color = "cyan";
+    projection_color = "blue";
     projection_style = "dashed";
     weak_flow_width = 1;
     flow_width = 2;
     strong_flow_width =3;
-  }
+    losange = ("dotted","black"),("dashed",("blue","blue4")),("solid",("blue","blue4")),("solid",("red","red4")),("dashed",("red","red4")),("dotted","black");
+    losange_corners = empty_co ;
+    losange_padding = 0.5;
+ }
+

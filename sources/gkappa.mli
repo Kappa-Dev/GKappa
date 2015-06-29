@@ -20,8 +20,32 @@ open Geometry
 open StdLabels 
 
 type in_out = Inside | Outside 
+type lo_corner =
+  {
+    b'_b:string;
+    b'_l:string;
+    b'_r:string;
+    b_b':string;
+    b_l:string;
+    b_r:string;
+    l_b':string;
+    l_b:string;
+    l_t:string;
+    l_t':string;
+    r_b':string;
+    r_b:string;
+    r_t:string;
+    r_t':string;
+    t_l:string;
+    t_r:string;
+    t_t':string;
+    t'_l:string;
+    t'_r:string;
+    t'_t:string;
+  }
 type config = 
   { 
+    empty_graph: string;
     show_agent_names: bool;
     show_site_names: bool;
     show_state_names: bool;
@@ -49,6 +73,7 @@ type config =
     projection_width: int;
     cross_width: int;
     txt_font: int;
+    binding_type_font: int;
     agent_label_font: int; 
     site_label_font: int;
     state_label_font: int;
@@ -71,7 +96,15 @@ type config =
     flow_padding: float;
     flow_width: int;
     strong_flow_width: int;
+    losange: (string*string)*(string*(string*string))*(string*(string*string))*(string*(string*string))*(string*(string*string))*(string*string);
+    losange_corners: lo_corner;
+    losange_padding: float ;
   }
+
+
+
+type co_mode = Empty | Middle | Corners
+				   
 
 type tag = string 
 type directive =
@@ -113,19 +146,24 @@ type graph =
 	state_type list) list) list
 type lift 
 
-val init: config -> agent_type * remanent_state 
+val init: config -> agent_type * remanent_state
+val set_co: remanent_state  -> co_mode -> remanent_state
+val empty_co: lo_corner 
+val is_empty: remanent_state -> bool
+val unify_id: remanent_state * remanent_state -> remanent_state * remanent_state 
 val add_agent_type: string -> directive list -> remanent_state -> agent_type * remanent_state 
 val add_site_type: agent_type -> string -> directive list -> remanent_state -> site_type * remanent_state 
 val add_internal_state_type: site_type -> string -> directive list -> remanent_state -> internal_state_type * remanent_state 
   
 val add_in_signature: remanent_state -> signature -> remanent_state * signature_vars 
 val add_in_graph: remanent_state -> graph -> remanent_state * graph_vars 
-val add_agent: agent_type -> float -> float -> directive list -> remanent_state -> agent * remanent_state 
+val add_agent: agent_type -> float -> float -> directive list -> remanent_state -> agent * remanent_state
+val add_empty_graph: float -> float -> remanent_state -> agent * remanent_state 
 val add_site: agent -> site_type  -> directive list -> remanent_state -> site * remanent_state 
 val add_internal_state: site -> internal_state_type -> directive list -> remanent_state -> state * remanent_state 
 val add_free: site -> directive list -> remanent_state -> state * remanent_state 
 val add_bound: site -> directive list -> remanent_state -> state * remanent_state 
-  
+val add_binding_type: site -> site_type -> directive list -> remanent_state -> state * remanent_state   
 val add_free_list: (site * directive list) list -> remanent_state -> state list * remanent_state
   
 
@@ -136,6 +174,8 @@ val add_link_list: (site*site) list -> remanent_state -> remanent_state
 val map_id: (id -> id) -> remanent_state -> 
   (agent->agent)*(site->site)*(state->state)*remanent_state 
 
+val lift_of_agent_map: (agent -> agent) -> lift				       
+val int_of_agent: agent -> int 
 val compose_lift: lift -> lift -> lift 
 val lift_agent: lift -> agent -> agent 
 val lift_site: lift -> site -> site 
@@ -149,9 +189,9 @@ val horizontal_swap: remanent_state -> remanent_state
 val vertical_swap: remanent_state -> remanent_state 
 val disjoint_union: remanent_state -> remanent_state -> lift * lift * remanent_state 
 val disjoint_union_with_match: remanent_state -> remanent_state -> lift * lift * remanent_state 
-val add_match: (agent*agent) list -> remanent_state -> remanent_state 
-val add_proj: (agent*agent) list -> remanent_state -> remanent_state 
-val add_emb: (agent*agent) list -> remanent_state -> remanent_state
+val add_match: ?color:string -> ?style:string -> (agent*agent) list -> remanent_state -> remanent_state 
+val add_proj: ?color:string -> ?style:string -> ?ca:(string option) -> ?cb:(string option) ->  (agent*agent) list -> remanent_state -> remanent_state 
+val add_emb: ?color:string -> ?style:string -> ?ca:(string option) -> ?cb:(string option) -> (agent*agent) list -> remanent_state -> remanent_state
 val tag_all_nodes: tag -> int -> remanent_state -> remanent_state 
 val move_remanent_right_to: float -> remanent_state -> remanent_state -> remanent_state
 val move_remanent_left_to: float -> remanent_state -> remanent_state -> remanent_state 
@@ -160,11 +200,10 @@ val move_remanent_bellow: float -> remanent_state -> remanent_state -> remanent_
 val add_rule: float -> float -> directive list -> remanent_state -> remanent_state
 val corners: remanent_state -> (float * float * float * float) option 
 val cross: remanent_state -> remanent_state 
-
+			       
 type valuation = graph_vars * (site * state list) list * state list 
-
 val build_rule: remanent_state -> (remanent_state -> valuation * remanent_state) -> (remanent_state -> valuation * remanent_state) -> directive list -> lift * lift * valuation * remanent_state
-
+val build_losange: ?file:string  -> ?hgap:(float option) -> ?vgap:(float option) -> ?bottom:((remanent_state -> valuation * remanent_state) option) -> (remanent_state -> valuation * remanent_state) -> (remanent_state -> valuation * remanent_state) -> ?extend_top:(valuation -> valuation -> remanent_state -> valuation * remanent_state) -> ?top:((valuation -> valuation -> valuation -> remanent_state -> valuation * remanent_state * (valuation -> valuation -> lift)) option) -> ?piv_left:(remanent_state -> remanent_state) -> ?piv_right:(remanent_state -> remanent_state) -> remanent_state -> (lift option * lift * lift * lift * lift * lift option) * valuation * remanent_state 
 val proj_flow_on_a_species: ?file:string -> ?padding:float -> ?angle:angle -> ?flow:(site * site) list -> remanent_state -> remanent_state -> (agent * agent) list -> lift * lift * remanent_state * remanent_state 
 
 val proj_flow_on_a_contact_map: ?file:string -> ?padding:float -> ?angle:angle -> ?flow:(site * site) list -> remanent_state -> remanent_state -> lift * lift * remanent_state * remanent_state 

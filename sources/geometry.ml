@@ -128,7 +128,7 @@ let point_on_rectangle_ext center width height  direction scale delta =
       then
      	  {
 	ordinate = center.ordinate -. (height *. 0.5 *. scale +. delta) ; 
-	abscisse = center.abscisse +. (height *. 0.5 *. scale +. delta) *. (tan (angle -. pi))}
+	abscisse = center.abscisse -. (height *. 0.5 *. scale +. delta) *. (tan (angle -. pi))}
       else if angle < 2.*.pi -. angle_rectangle 
       then 
       	  {
