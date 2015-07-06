@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation: March, the 28th of 2015
- * Last modification: Time-stamp: <2015-07-06 07:14:28 feret>
+ * Last modification: Time-stamp: <2015-07-06 08:40:06 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -215,8 +215,8 @@ val disjoint_union: remanent_state -> remanent_state -> lift * lift * remanent_s
 val disjoint_union_with_match: remanent_state -> remanent_state -> lift * lift * remanent_state 
 
 val add_match: ?color:string -> ?style:string -> (agent*agent) list -> remanent_state -> remanent_state 
-val add_proj: ?color:string -> ?style:string -> ?ca:(string option) -> ?cb:(string option) ->  (agent*agent) list -> remanent_state -> remanent_state 
-val add_emb: ?color:string -> ?style:string -> ?ca:(string option) -> ?cb:(string option) -> (agent*agent) list -> remanent_state -> remanent_state
+val add_proj: ?color:string -> ?style:string -> ?ca:(string option) -> ?cb:(string option) -> ?donotfuse:(bool) ->  (agent*agent) list -> remanent_state -> remanent_state 
+val add_emb: ?color:string -> ?style:string -> ?ca:(string option) -> ?cb:(string option) -> ?donotfuse:(bool) -> (agent*agent) list -> remanent_state -> remanent_state
 
 val tag_all_nodes: tag -> int -> remanent_state -> remanent_state 
 val move_remanent_right_to: float -> remanent_state -> remanent_state -> remanent_state

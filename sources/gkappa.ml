@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-07-06 07:53:18 feret>
+ * Last modification: Time-stamp: <2015-07-06 08:45:23 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -368,6 +368,7 @@ type 'a item =
     scale_factor: float;
     corner1:string option;
     corner2:string option;
+    canbefused:bool;
     forward: bool;
     backward: bool; 
     priority: int;
@@ -384,6 +385,7 @@ let dummy_item =
     comment = "";
     corner1=None;
     corner2=None;
+    canbefused=true;
     kind = Dummy_node ;
     father = None ;
     sibblings = IdMap.empty ; 
@@ -447,12 +449,13 @@ let pairing config =
    with style = config.pairing_style ; 
      color = config.pairing_color ; 
      width = (float_of_int config.pairing_width)}
-let projection ?ca:(ca=None) ?cb:(cb=None) config = 
+let projection ?ca:(ca=None) ?cb:(cb=None) ?(donotfuse=false) config = 
   {
     (pairing config) 
   with forward = true ;
        corner1 = ca ;
        corner2 = cb ;
+       canbefused = not donotfuse ;
        style = config.projection_style ; 
        color = config.projection_color ; 
        width = (float_of_int config.projection_width)}
@@ -869,7 +872,7 @@ let rec add_link edge n1 n2 remanent =
       
 let add_relation relation = add_link relation 
 let add_match_elt config = add_link (pairing config)
-let add_proj_elt ?ca:(ca=None) ?cb:(cb=None) config = add_link (projection ~ca:ca ~cb:cb config)
+let add_proj_elt ?ca:(ca=None) ?cb:(cb=None) ?donotfuse:(donotfuse=false) config = add_link (projection ~ca:ca ~cb:cb ~donotfuse:donotfuse config)
 let add_edge x y z = add_relation (link z.config) x y z 
 let add_weak_flow_and_link x y z = add_relation (weak_flow z.config) x y (add_edge  x y z)
 let add_flow_and_link x y z = add_relation (flow z.config) x y (add_weak_flow_and_link x y z)
@@ -1094,7 +1097,8 @@ let dump_edge_list chan filter remanent (n1,n2) l =
 	      aux q accu accu2
 	    else 
 	      begin
-		if edge.corner1 <> None && edge.corner2 <> None
+		if edge.corner1 <> None || edge.corner2 <> None || not edge.canbefused
+
 		then
 		  aux q accu (edge::accu2)
 		else
@@ -1489,7 +1493,7 @@ let add_match ?color:(color="") ?style:(style="") l remanent =
     (fun remanent (x,y) -> add_match_elt remanent.config x y remanent) remanent l 
     
     
-let add_proj ?color:(color="") ?style:(style="") ?ca:(ca=None) ?cb:(cb=None) l remanent = 
+let add_proj ?color:(color="") ?style:(style="") ?ca:(ca=None) ?cb:(cb=None) ?donotfuse:(donotfuse=false) l remanent = 
   let config = 
     if color = ""
     then remanent.config
@@ -1501,9 +1505,9 @@ let add_proj ?color:(color="") ?style:(style="") ?ca:(ca=None) ?cb:(cb=None) l r
     else {config with projection_style = style }
   in
   List.fold_left 
-    (fun remanent (x,y) -> add_proj_elt ~ca:ca ~cb:cb config x y remanent) remanent l 
+    (fun remanent (x,y) -> add_proj_elt ~ca:ca ~cb:cb ~donotfuse:donotfuse config x y remanent) remanent l 
     
-let add_emb ?color:(color="") ?style:(style="") ?ca:(ca=None) ?cb:(cb=None) l remanent =
+let add_emb ?color:(color="") ?style:(style="") ?ca:(ca=None) ?cb:(cb=None) ?donotfuse:(donotfuse=false) l remanent =
   let config = 
     if color = ""
     then remanent.config
