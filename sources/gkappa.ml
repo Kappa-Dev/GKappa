@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-07-06 07:22:49 feret>
+ * Last modification: Time-stamp: <2015-07-06 07:53:18 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -1122,8 +1122,17 @@ let dump_edge_list chan filter remanent (n1,n2) l =
     in
     List.iter (fun edge -> dump_edge chan (n1,n2) edge remanent) b
 
+let fill_empty g =
+  if is_empty g
+  then
+    let a,b = add_empty_graph 0. 0. g in
+    [a],b
+  else
+    [],g
+
 let dump file ?flags:(filter=[]) remanent = 
   let chan = open_out file in 
+  let _,remanent = fill_empty remanent in 
   let _ = Printf.fprintf chan "digraph G {\n\n" in 
   let _ = 
     IdMap.iter
@@ -1695,13 +1704,7 @@ let move graph cx cy =
 			   []
 	    ) g
  
-let fill_empty g =
-  if is_empty g
-  then
-    let a,b = add_empty_graph 0. 0. g in
-    [a],b
-  else
-    [],g
+
 
 let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(explicit=false) ?directives:(directives=[])   domain extend_lhs extend_rhs  =
   let (stylel,colorl),(styler,colorr) = domain.config.rule in 
