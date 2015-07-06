@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation: March, the 28th of 2015
- * Last modification: Time-stamp: <2015-04-05 07:17:59 feret>
+ * Last modification: Time-stamp: <2015-07-05 10:00:35 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -22,25 +22,26 @@ open Gkappa
 (* chemical species*)
 let _,init = init Config.config 
 (*signature*)
-let signature_egfr,
-  [
-    egf,
-    [egf_r,[]];
-    egfr,
-    [egfr_l,[];
-     egfr_r,[];
-    egfr_Y48,[egfr_Y48_u;egfr_Y48_p];
-    egfr_Y68,[egfr_Y68_u;egfr_Y68_p]];
-    shc,
-    [shc_pi,[];
-     shc_Y7,[shc_Y7_u;shc_Y7_p]];
-    grb2,
-    [grb2_a,[];
-     grb2_b,[]];
-    sos,
-    [sos_d,[]]]
+let  
+    [
+      egf,
+      [egf_r,[]];
+      egfr,
+      [egfr_l,[];
+       egfr_r,[];
+       egfr_Y48,[egfr_Y48_u;egfr_Y48_p];
+       egfr_Y68,[egfr_Y68_u;egfr_Y68_p]];
+      shc,
+      [shc_pi,[];
+       shc_Y7,[shc_Y7_u;shc_Y7_p]];
+      grb2,
+      [grb2_a,[];
+       grb2_b,[]];
+      sos,
+      [sos_d,[]]],
+  signature_egfr 
   = 
-  add_in_signature init 
+  add_in_signature  
     [
       "EGF",[Width 1.2;Height 0.8;Shape "ellipse"],
       [
@@ -67,4 +68,4 @@ let signature_egfr,
       [
 	"d",[],[]
       ]]
-    
+    init 

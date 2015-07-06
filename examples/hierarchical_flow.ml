@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-05-27 23:03:57 feret>
+ * Last modification: Time-stamp: <2015-07-05 14:09:13 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -28,15 +28,16 @@ open Geometry
 (* chemical species*)
 let _,remanent = init config 
 (*signature*)
-let remanent,
+let 
   [p,
    [
      g,[gu;gp]; 
      c,[cu;cp];
      d,[du;dp]
    ]
-  ]
-    = add_in_signature remanent 
+  ],
+  remanent 
+    = add_in_signature 
   [
     "",[FillColor "white";Width 0.8;Height 0.8;Shape "rectangle"],
     [
@@ -45,17 +46,17 @@ let remanent,
       "d",[FillColor "blue";Radius 0.4;Direction se],["du",[];"dp",[]]
     ]
   ]
+  remanent 
 
 (* CONTACT MAP *)
-let contact_map , 
-  [
+let [
     cm_p,[cm_c,[cm_cu;cm_cp];
 	  cm_g,[cm_gu;cm_gp];
 	  cm_d,[cm_du;cm_dp]]
-  ]
+  ],
+  contact_map
   = 
   add_in_graph 
-    remanent 
     [
       p,0.,0.,[],
       [c,[],
@@ -67,6 +68,7 @@ let contact_map ,
        d,[Tag ("site",1)],
        [Internal_state (gu,[Direction (of_degree (to_degree se+.15.))]);
 	Internal_state (gp,[Direction (of_degree (to_degree se-.15.))])]]]
+    remanent 
 
 let annotated_contact_map = 
   add_flow_list 
@@ -76,122 +78,93 @@ let annotated_contact_map =
     ]
     contact_map
 
-let _ = dump "hier_contact_map.dot" []  contact_map
-let _ = dump "hier_contact_map_annotated.dot" []  annotated_contact_map
-let _ = dump "hier_contact_map_d_annotated.dot" ["site",1]  annotated_contact_map 
-let _ = dump "hier_contact_map_g_annotated.dot" ["site",0]  annotated_contact_map
+let _ = dump "hier_contact_map.dot" contact_map
+let _ = dump "hier_contact_map_annotated.dot" annotated_contact_map
+let _ = dump "hier_contact_map_d_annotated.dot" ~flags:["site",1]  annotated_contact_map 
+let _ = dump "hier_contact_map_g_annotated.dot" ~flags:["site",0]  annotated_contact_map
 
-let p,nnn = add_agent p 0. 0. [] remanent
-let sg,unn = add_site p g [] nnn
-let _,pnn = add_internal_state sg gp [Direction sw;Scale 1.2] unn
-let _,unn = add_internal_state sg gu [Direction sw;Scale 1.2] unn 
-let sc,nun = add_site p c [] nnn
-let _,npn = add_internal_state sc cp [Direction n] nun
-let _,nun = add_internal_state sc cu [Direction n] nun 
-let sd,nnu = add_site p d [] nnn
-let _,nnp = add_internal_state sd dp [Direction se;Scale 1.2] nnu
-let _,nnu = add_internal_state sd du [Direction se;Scale 1.2] nnu
-let sg,spn = add_site p g [] npn 
-let _,ppn = add_internal_state sg gp [Direction sw;Scale 1.2] spn
-let _,upn = add_internal_state sg gu [Direction sw;Scale 1.2] spn 
-let sd,nps = add_site p d [] npn 
-let _,npp = add_internal_state sd dp [Direction se] nps
-let _,npu = add_internal_state sd du [Direction se] nps 
-let sg,spu = add_site p g [] npu 
-let _,ppu = add_internal_state sg gp [Direction sw] spu
-let _,upu = add_internal_state sg gu [Direction sw] spu 
-let sg,spp = add_site p g [] npp 
-let _,ppp = add_internal_state sg gp [Direction sw] spp
-let _,upp = add_internal_state sg gu [Direction sw] spp 
-let sg,sun = add_site p g [] nun 
-let _,uun = add_internal_state sg gu [Direction sw] sun 
-let sd,uus = add_site p d [] uun
-let _,uuu = add_internal_state sd du [Direction se] uus
+let p,nnn = add_agent p 0. 0. remanent
+let sg,unn = add_site p g nnn
+let _,pnn = add_internal_state sg gp ~directives:[Direction sw;Scale 1.2] unn
+let _,unn = add_internal_state sg gu ~directives:[Direction sw;Scale 1.2] unn 
+let sc,nun = add_site p c nnn
+let _,npn = add_internal_state sc cp ~directives:[Direction n] nun
+let _,nun = add_internal_state sc cu ~directives:[Direction n] nun 
+let sd,nnu = add_site p d nnn
+let _,nnp = add_internal_state sd dp ~directives:[Direction se;Scale 1.2] nnu
+let _,nnu = add_internal_state sd du ~directives:[Direction se;Scale 1.2] nnu
+let sg,spn = add_site p g npn 
+let _,ppn = add_internal_state sg gp ~directives:[Direction sw;Scale 1.2] spn
+let _,upn = add_internal_state sg gu ~directives:[Direction sw;Scale 1.2] spn 
+let sd,nps = add_site p d npn 
+let _,npp = add_internal_state sd dp ~directives:[Direction se] nps
+let _,npu = add_internal_state sd du ~directives:[Direction se] nps 
+let sg,spu = add_site p g npu 
+let _,ppu = add_internal_state sg gp ~directives:[Direction sw] spu
+let _,upu = add_internal_state sg gu ~directives:[Direction sw] spu 
+let sg,spp = add_site p g npp 
+let _,ppp = add_internal_state sg gp ~directives:[Direction sw] spp
+let _,upp = add_internal_state sg gu ~directives:[Direction sw] spp 
+let sg,sun = add_site p g nun 
+let _,uun = add_internal_state sg gu ~directives:[Direction sw] sun 
+let sd,uus = add_site p d uun
+let _,uuu = add_internal_state sd du ~directives:[Direction se] uus
 
 
  
-let _ = dump "hier_uuu.dot" []  uuu
-let _ = dump "hier_upu.dot" []  upu 
-let _ = dump "hier_ppp.dot" []  ppp
-let _ = dump "hier_upp.dot" []  upp
-let _ = dump "hier_ppu.dot" []  ppu
-let _ = dump "hier_upn.dot" []  upn 
-let _ = dump "hier_ppn.dot" []  ppn
-let _ = dump "hier_npp.dot" []  npp
-let _ = dump "hier_npu.dot" []  npu
+let _ = dump "hier_uuu.dot" uuu
+let _ = dump "hier_upu.dot" upu 
+let _ = dump "hier_ppp.dot" ppp
+let _ = dump "hier_upp.dot" upp
+let _ = dump "hier_ppu.dot" ppu
+let _ = dump "hier_upn.dot" upn 
+let _ = dump "hier_ppn.dot" ppn
+let _ = dump "hier_npp.dot" npp
+let _ = dump "hier_npu.dot" npu
 
 let _,_,tmp =  
   disjoint_union uuu 
     (move_remanent_right_to 0.6 upu upu)
 
 let reaction_c = 
-  translate_graph {abscisse = 2. ; ordinate =  0.} (add_rule 1.1 0. 
-    [Comment("$\ky$");Height 1.2] tmp)
+  translate_graph {abscisse = 2. ; ordinate =  0.} (add_rule 1.1 0. ~directives:[Comment("$\ky$");Height 1.2] tmp)
 
 
 let _,_,tmp =  
   disjoint_union upu 
     (move_remanent_right_to 0.6 upp upp)
-let reaction_du = 
-  add_rule 1.1 0. 
-    [Comment("$\kz$");Height 0.6] tmp 
-let _,_,tmp =  
-  disjoint_union ppu 
-    (move_remanent_right_to 0.6 ppp ppp)
-let reaction_dp = 
-  add_rule 1.1 0. 
-    [Comment("$\kz$");Height 0.6] tmp 
-let _,_,tmp =  
-  disjoint_union upu 
-    (move_remanent_right_to 0.6 ppu ppu)
+let reaction_du = add_rule 1.1 0. ~directives:[Comment("$\kz$");Height 0.6] tmp 
+let _,_,tmp = disjoint_union ppu (move_remanent_right_to 0.6 ppp ppp)
+let reaction_dp = add_rule 1.1 0. ~directives:[Comment("$\kz$");Height 0.6] tmp 
+let _,_,tmp = disjoint_union upu (move_remanent_right_to 0.6 ppu ppu)
 
-let reaction_gu = 
-  add_rule 1.1 0. 
-    [Comment("$\kx$");Height 0.6] tmp 
-let _,_,tmp =  
-  disjoint_union upp
-    (move_remanent_right_to 0.6 ppp ppp)
-let reaction_gp = 
-  add_rule 1.1 0. 
-    [Comment("$\kx$");Height 0.6] tmp 
+let reaction_gu = add_rule 1.1 0. ~directives:[Comment("$\kx$");Height 0.6] tmp 
+let _,_,tmp = disjoint_union upp (move_remanent_right_to 0.6 ppp ppp)
+let reaction_gp = add_rule 1.1 0. ~directives:[Comment("$\kx$");Height 0.6] tmp 
 
 
-let _ = dump "hier_reaction_c.ladot" [] reaction_c
-let _ = dump "hier_reaction_du.ladot" [] reaction_du
-let _ = dump "hier_reaction_dp.ladot" [] reaction_dp
-let _ = dump "hier_reaction_gu.ladot" [] reaction_gu
-let _ = dump "hier_reaction_gp.ladot" [] reaction_gp
+let _ = dump "hier_reaction_c.ladot" reaction_c
+let _ = dump "hier_reaction_du.ladot" reaction_du
+let _ = dump "hier_reaction_dp.ladot" reaction_dp
+let _ = dump "hier_reaction_gu.ladot" reaction_gu
+let _ = dump "hier_reaction_gp.ladot" reaction_gp
 
 let _,_,reaction_d = disjoint_union reaction_du (move_remanent_right_to 1. reaction_dp reaction_du)
 let _,_,reaction_g = disjoint_union reaction_gu (move_remanent_right_to 1. reaction_gp reaction_gu)
-let _ = dump "hier_reaction_d.ladot" [] reaction_d
-let _ = dump "hier_reaction_g.ladot" [] reaction_g
+let _ = dump "hier_reaction_d.ladot" reaction_d
+let _ = dump "hier_reaction_g.ladot" reaction_g
 
-let _,_,reactions = 
-  disjoint_union 
-    reaction_c
-    (move_remanent_bellow 0. reaction_d reaction_c)
+let _,_,reactions = disjoint_union reaction_c (move_remanent_bellow 0. reaction_d reaction_c)
 
-let _,_,reactions = 
-  disjoint_union 
-    reactions
-    (move_remanent_bellow 0. reaction_g reactions)
+let _,_,reactions = disjoint_union reactions (move_remanent_bellow 0. reaction_g reactions)
 
-let _ = dump "hier_reactions.ladot" [] reactions
+let _ = dump "hier_reactions.ladot" reactions
 
-let _,_,tmp =  
-  disjoint_union upn
-    (move_remanent_right_to 0.75 ppn ppn)
-let reaction_gn = 
-  add_rule 1.3 0. 
-    [Comment("$\kx$");Height 0.6] tmp 
-let _,_,tmp =  
-  disjoint_union npu
-    (move_remanent_right_to 0.6 npp npp)
-let reaction_dn = 
-  add_rule 1.3 0. 
-    [Comment("$\kz$");Height 0.6] tmp 
-let _ = dump "hier_reaction_gn.ladot" [] reaction_gn
-let _ = dump "hier_reaction_dn.ladot" [] reaction_dn
+let _,_,tmp = disjoint_union upn (move_remanent_right_to 0.75 ppn ppn)
+let reaction_gn = add_rule 1.3 0. ~directives:[Comment("$\kx$");Height 0.6] tmp 
+let _,_,tmp = disjoint_union npu (move_remanent_right_to 0.6 npp npp)
+let reaction_dn = add_rule 1.3 0. ~directives:[Comment("$\kz$");Height 0.6] tmp 
+let _ = dump "hier_reaction_gn.ladot" reaction_gn
+let _ = dump "hier_reaction_dn.ladot" reaction_dn
  
 

@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-04-05 feret>
- * Last modification: Time-stamp: <2015-06-25 11:36:21 feret>
+ * Last modification: Time-stamp: <2015-07-03 18:32:11 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -64,6 +64,9 @@ let nw = of_degree 315.
 let bissec angle1 angle2 = 
   angle_of_decl (Degree ((angle1.degree +. angle2.degree)/.2.))
 
+let add_angle angle1 angle2 = 
+  angle_of_decl (Degree ((angle1.degree +. angle2.degree)))
+
 let clockwise angle1 angle2 = 
   angle_of_decl (Degree ((angle1.degree +. angle2)))
 
@@ -82,6 +85,39 @@ let sample_angle x =
     else scan (x+.45.) (rep+.45.)
   in scan 23. 0. 
 
+
+let angle_of_string s =
+  of_degree (
+    match s with 
+      "n"  ->   0. 
+    | "ne" ->  45.
+    | "e"  ->  90.
+    | "se" -> 135.
+    | "s"  -> 180.
+    | "sw" -> 225.
+    | "w"  -> 270.
+    | "nw" -> 315.
+    | _ -> failwith ("wrong string ("^s^") in angle_of_string")
+  )
+
+let angle_to_string d =
+  let d = to_degree d in 
+  if d <= 23. then "n"
+  else if d <= 48. then "ne"
+  else if d <= 113. then "e"
+  else if d <= 158. then "se"
+  else if d <= 203. then "s"
+  else if d <= 248. then "sw"
+  else if d <= 293. then "w"
+  else if d <= 338. then "nw"
+  else "n" 
+
+let rotate_co x d =
+  match x with 
+    "" -> ""
+  | _ -> 
+    angle_to_string (add_angle (angle_of_string x) d) 
+      
  let point_on_ellipse_ext center width height  direction scale delta = 
       let angle = direction.radius in 
       {
@@ -261,4 +297,4 @@ let compute_padding (xm,xM,ym,yM) (xm',xM',ym',yM') angle distance =
     else 
       0.,0.
   in 
-  cx,cy,deltax,deltay
+  cx,cy,deltax,deltay,distancex,distancey

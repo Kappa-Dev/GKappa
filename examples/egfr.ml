@@ -5,7 +5,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-05-28 11:56:19 feret>
+ * Last modification: Time-stamp: <2015-07-05 14:04:51 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -28,17 +28,17 @@ let empty = Signature_egfr.signature_egfr
 
 
 (* CONTACT MAP *)
-let remanent, 
+let 
   [
     cm_egf,[cm_egf_r,_];
     cm_egfr,[cm_egfr_l,_;cm_egfr_r,_;cm_egfr_Y68,_;cm_egfr_Y48,_];
     cm_shc,[cm_shc_pi,_;cm_shc_Y7,_];
     cm_grb2,[cm_grb2_a,_;cm_grb2_b,_];
     cm_sos,[cm_sos_d,_]
-  ]
+  ],
+  remanent
   = 
   add_in_graph 
-    empty 
     [
       egf,2.7,13.,[],
       [egf_r,[Direction s],
@@ -71,7 +71,7 @@ let remanent,
       sos,2.7,9.15,[],
       [sos_d,[Direction w],
        [Free_site [Direction sw]]]]
-
+    empty 
 
 
 let remanent = 
@@ -111,14 +111,14 @@ let add_flow_cm p remanent =
     remanent
 
 let annotated_contact_map= add_flow_cm (fun x->x) contact_map
-let _ = dump "contact_map.dot" []  contact_map
-let _ = dump "contact_map_annotated.dot" []  annotated_contact_map 
+let _ = dump "contact_map.dot" contact_map
+let _ = dump "contact_map_annotated.dot" annotated_contact_map 
 
 let contact_map  = tag_all_nodes "contact_map" 1 contact_map
 
 (*SPECIES*)
 
-let remanent, 
+let 
   [
     sp_egf1,[sp_egf1_r,_];
     sp_egfr1,[sp_egfr1_l,_;sp_egfr1_r,_;sp_egfr1_Y68,_;sp_egfr1_Y48,_];
@@ -129,10 +129,10 @@ let remanent,
     sp_grb21,[sp_grb21_a,_;sp_grb21_b,_] ;
     sp_grb22,[sp_grb22_a,_;sp_grb22_b,_] ;
     sp_sos1,[sp_sos1_d,_]  
-  ] 
+  ],
+  remanent 
   =
   add_in_graph 
-    empty 
     [
       egf,1.,13.8,[],
       [egf_r,[Direction s],[]];
@@ -164,7 +164,8 @@ let remanent,
        grb2_b,[Direction w],[Free_site [Direction sw]]];
       sos,4.5,8.,[Tag ("frag",2)],
       [sos_d,[Direction w],[]]]
-
+    empty 
+    
 let remanent = 
   add_link_list 
     [
@@ -216,28 +217,28 @@ let add_flow_species p remanent =
 
 let species_with_flow = add_flow_species (fun x -> x ) remanent 
 
-let _ = dump "species.dot" ["flow",0]  species_with_flow
-let _ = dump "species_annotated.dot" ["flow",1] species_with_flow
-let _ = dump "species_frag1_annotated.dot" ["frag",1;"flow",1]  species_with_flow
-let _ = dump "species_frag2_annotated.dot" ["frag",2;"flow",1]  species_with_flow
-let _ = dump "species_frag3_annotated.dot" ["frag",3;"flow",1]  species_with_flow
-let _ = dump "species_frag4_annotated.dot" ["frag",4;"flow",1]  species_with_flow
-let _ = dump "species_frag1.dot" ["frag",1;"flow",0]  species_with_flow
-let _ = dump "species_frag2.dot" ["frag",2;"flow",0]  species_with_flow
-let _ = dump "species_frag3.dot" ["frag",3;"flow",0]  species_with_flow
-let _ = dump "species_frag4.dot" ["frag",4;"flow",0]  species_with_flow 
+let _ = dump "species.dot" ~flags:["flow",0]  species_with_flow
+let _ = dump "species_annotated.dot" ~flags:["flow",1] species_with_flow
+let _ = dump "species_frag1_annotated.dot" ~flags:["frag",1;"flow",1]  species_with_flow
+let _ = dump "species_frag2_annotated.dot" ~flags:["frag",2;"flow",1]  species_with_flow
+let _ = dump "species_frag3_annotated.dot" ~flags:["frag",3;"flow",1]  species_with_flow
+let _ = dump "species_frag4_annotated.dot" ~flags:["frag",4;"flow",1]  species_with_flow
+let _ = dump "species_frag1.dot" ~flags:["frag",1;"flow",0]  species_with_flow
+let _ = dump "species_frag2.dot" ~flags:["frag",2;"flow",0]  species_with_flow
+let _ = dump "species_frag3.dot" ~flags:["frag",3;"flow",0]  species_with_flow
+let _ = dump "species_frag4.dot" ~flags:["frag",4;"flow",0]  species_with_flow 
 
 (* SPECIES + CM *)
 
 let trans_sp = translate_graph {abscisse = -9.;ordinate =  0.} species 
 let trans_sp_with_flow = translate_graph {abscisse = -9.;ordinate =  0.} species_with_flow 
 let sigma_cm,sigma_sp,trans_sp_with_flow_with_cm = disjoint_union contact_map trans_sp_with_flow 
-let _ = dump "flow_annotated_species_cm.dot" [] trans_sp_with_flow_with_cm
-let _ = dump "flow_annotated_species_annotated_cm.dot" []
+let _ = dump "flow_annotated_species_cm.dot" trans_sp_with_flow_with_cm
+let _ = dump "flow_annotated_species_annotated_cm.dot" 
   (add_flow_cm (lift_site sigma_cm) trans_sp_with_flow_with_cm)
 
 let sigma_cm,sigma_sp,trans_sp_with_cm = disjoint_union contact_map trans_sp
-let _ = dump "species_frag2_annotated_cm.dot" ["frag",2]
+let _ = dump "species_frag2_annotated_cm.dot" ~flags:["frag",2]
   (add_flow_cm (lift_site sigma_cm) trans_sp_with_cm)
 
 
@@ -262,26 +263,23 @@ let species_cm =
     proj 
     trans_sp_with_flow_with_cm
 
-let _ = dump "flow_annotated_species_proj_cm.dot" [] species_cm 
-let _ = dump "flow_annotated_species_proj_annotated_cm.dot" [] 
-  (add_flow_cm (lift_site sigma_cm) species_cm) 
+let _ = dump "flow_annotated_species_proj_cm.dot" species_cm 
+let _ = dump "flow_annotated_species_proj_annotated_cm.dot" (add_flow_cm (lift_site sigma_cm) species_cm) 
 let _ = proj_flow_on_a_contact_map ~file:"flow_species_proj_contact_map_" ~angle:e species_with_flow  contact_map 
 
-let _ = dump "species_frag2_proj_annotated_cm.dot" ["frag",2]
-  (add_flow_cm (lift_site sigma_cm) (add_proj proj_inv trans_sp_with_cm))
-let _ = dump "species_annotated_frag2_proj_annotated_cm.dot" ["frag",2;"flow",1]
-  (add_flow_cm (lift_site sigma_cm) (add_proj proj_inv trans_sp_with_flow_with_cm))
+let _ = dump "species_frag2_proj_annotated_cm.dot" ~flags:["frag",2] (add_flow_cm (lift_site sigma_cm) (add_proj proj_inv trans_sp_with_cm))
+let _ = dump "species_annotated_frag2_proj_annotated_cm.dot" ~flags:["frag",2;"flow",1] (add_flow_cm (lift_site sigma_cm) (add_proj proj_inv trans_sp_with_flow_with_cm))
 
 
 (* RULE *)
-let lhs_domain, 
+let 
   [
     rule_shc,[rule_shc_Y7,_;rule_shc_pi,_];
     rule_egfr,[rule_egfr_r,_;rule_egfr_Y48,_]; 
-  ]
+  ],
+  lhs_domain
   =
   add_in_graph 
-    empty 
     [
       shc,-5.,13.5,[],
       [shc_Y7,[Direction n],[Free_site [Direction n]];
@@ -289,6 +287,7 @@ let lhs_domain,
       egfr,-3.,12.,[],
       [egfr_r,[Direction s],[Bound_site [Direction s]];
       egfr_Y48,[Direction (of_degree (to_degree nw+.5.))],[Internal_state (egfr_Y48_p,[Direction (of_degree (to_degree nw+.20.))])]]]
+    empty
 
 let lhs_domain = add_link_list [rule_egfr_Y48,rule_shc_pi] lhs_domain 
 
@@ -296,12 +295,13 @@ let sigmal,_,_,rule =
   build_rule 
     lhs_domain 
     (fun remanent -> 
-      ([],[],[]),snd (add_internal_state rule_shc_Y7 shc_Y7_u [Direction ne] remanent))
+      ([],[],[]),snd (add_internal_state rule_shc_Y7 shc_Y7_u ~directives:[Direction ne] remanent))
     (fun remanent -> 
-      ([],[],[]),snd (add_internal_state rule_shc_Y7 shc_Y7_p [Direction ne] remanent))
-    [Direction s]
-
-let _ = dump "flow_rule.dot" ["contact_map",0;"flow",0]  rule 
+      ([],[],[]),snd (add_internal_state rule_shc_Y7 shc_Y7_p ~directives:[Direction ne] remanent))
+      ~directives:[Direction s]
+   
+    
+let _ = dump "flow_rule.dot" ~flags:["contact_map",0;"flow",0]  rule 
 
 let annotated_rule = 
   add_flow_list 
@@ -312,7 +312,7 @@ let annotated_rule =
     ]
     rule 
 
-let _ = dump "flow_annotated_rule.dot" [] annotated_rule 
+let _ = dump "flow_annotated_rule.dot" annotated_rule 
 
 (* RULE + CM *) 
 
@@ -359,16 +359,16 @@ let _ = proj_flow_on_a_species ~file:"flow_rule_proj_contact_map_" ~padding:10. 
 
 let exaa = [Tag ("Exab",0);Tag("Exac",0);Tag("Exad",0)]
 
-let short_species, 
+let 
   [
     sp_egf1,[sp_egf1_r,_];
     sp_egfr1,[sp_egfr1_l,_;sp_egfr1_r,_;sp_egfr1_Y68,_;sp_egfr1_Y48,_];
     sp_egf2,[sp_egf2_r,_];
     sp_egfr2,[sp_egfr2_l,_;sp_egfr2_r,_;sp_egfr2_Y68,_]  ;
-  ] 
+  ],
+  short_species 
   =
   add_in_graph 
-    empty 
     [
       egf,1.,13.8,[],
       [egf_r,[Direction s],[]];
@@ -385,7 +385,7 @@ let short_species,
 	egfr_r,[Direction w],[];
 	egfr_Y68,[Direction s;Tag ("Exaa",0);Tag ("Exad",0);Tag("Exac",0)],[Free_site [Direction sw];Internal_state (egfr_Y68_p,[Direction se])];
        ]]
-
+    empty 
 
 let short_species = 
   add_link_list 
@@ -413,29 +413,29 @@ let short_species =
     ]
      short_species
 
-let _ = dump "short_species_exa_annotated.dot" ["Exaa",1]  short_species 
-let _ = dump "short_species_exa.dot" ["Exaa",1;"flow",0]  short_species 
-let _ = dump "short_species_exb_annotated.dot" ["Exab",1]  short_species 
-let _ = dump "short_species_exb.dot" ["Exab",1;"flow",0]  short_species 
-let _ = dump "short_species_exc_annotated.dot" ["Exac",1]  short_species 
-let _ = dump "short_species_exc.dot" ["Exac",1;"flow",0]  short_species 
-let _ = dump "short_species_exd_annotated.dot" ["Exad",1]  short_species 
-let _ = dump "short_species_exd.dot" ["Exad",1;"flow",0]  short_species 
-let _ = dump "short_species_exb_annotated_crossed.dot" ["Exab",1]  (cross short_species)
-let _ = dump "short_species_exb_crossed.dot" ["Exab",1;"flow",0]  (cross short_species )
-let _ = dump "short_species_exc_annotated_crossed.dot" ["Exac",1]  (cross short_species)
-let _ = dump "short_species_exc_crossed.dot" ["Exac",1;"flow",0]  (cross short_species )
+let _ = dump "short_species_exa_annotated.dot" ~flags:["Exaa",1]  short_species 
+let _ = dump "short_species_exa.dot" ~flags:["Exaa",1;"flow",0]  short_species 
+let _ = dump "short_species_exb_annotated.dot" ~flags:["Exab",1]  short_species 
+let _ = dump "short_species_exb.dot" ~flags:["Exab",1;"flow",0]  short_species 
+let _ = dump "short_species_exc_annotated.dot" ~flags:["Exac",1]  short_species 
+let _ = dump "short_species_exc.dot" ~flags:["Exac",1;"flow",0]  short_species 
+let _ = dump "short_species_exd_annotated.dot" ~flags:["Exad",1]  short_species 
+let _ = dump "short_species_exd.dot" ~flags:["Exad",1;"flow",0]  short_species 
+let _ = dump "short_species_exb_annotated_crossed.dot" ~flags:["Exab",1]  (cross short_species)
+let _ = dump "short_species_exb_crossed.dot" ~flags:["Exab",1;"flow",0]  (cross short_species )
+let _ = dump "short_species_exc_annotated_crossed.dot" ~flags:["Exac",1]  (cross short_species)
+let _ = dump "short_species_exc_crossed.dot" ~flags:["Exac",1;"flow",0]  (cross short_species )
 
 
 (* FRAG CONS / PROD  *)
-let lhs_domain, 
+let 
   [
     cons_shc,[cons_shc_Y7,_;cons_shc_pi,_];
     cons_egfr,[cons_egfr_r,_;cons_egfr_Y48,_]; 
-  ]
+  ],
+  lhs_domain
   =
   add_in_graph 
-    empty 
     [
       shc,-5.,12.,[],
       [shc_Y7,[Direction w],[Free_site[Direction nw]];
@@ -443,23 +443,24 @@ let lhs_domain,
       egfr,-3.,12.,[],
       [egfr_r,[Direction e],[Bound_site [Direction se]];
       egfr_Y48,[Direction w],[]]]
-
+    empty 
+    
 let lhs_domain = add_link_list [cons_egfr_Y48,cons_shc_pi] lhs_domain 
 
 let sigmal,sigmar,_,rule = 
   build_rule 
     lhs_domain 
     (fun remanent -> 
-      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_u [Direction sw] remanent))
+      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_u ~directives:[Direction sw] remanent))
     (fun remanent -> 
-      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_p [Direction sw] remanent))
-    [Direction e]
+      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_p ~directives:[Direction sw] remanent))
+    ~directives:[Direction e]
 
 
-let _ = dump "flow_cons_rule_e.dot" ["contact_map",0;"flow",0]  rule 
+let _ = dump "flow_cons_rule_e.dot" ~flags:["contact_map",0;"flow",0]  rule 
 
-let cons_egfr_l,fragment = add_site cons_egfr egfr_l [Direction s] lhs_domain 
-let _,fragment = add_bound cons_egfr_l [Direction se] fragment 
+let cons_egfr_l,fragment = add_site cons_egfr egfr_l ~directives:[Direction s] lhs_domain 
+let _,fragment = add_bound cons_egfr_l ~directives:[Direction se] fragment 
 
 
 let sigmarule,sigmafragment,cons =   disjoint_union rule (move_remanent_bellow 0. fragment lhs_domain)
@@ -475,21 +476,21 @@ let cons2 = add_proj pairing
   (snd (add_internal_state 
      (lift_site sigmafragment cons_shc_Y7) 
      shc_Y7_u  
-     [Direction sw;Color "red"]
+     ~directives:[Direction sw;Color "red"]
      cons ))
 
-let _ = dump "flow_cons_match.dot" ["contact_map",0;"flow",0]  cons1
-let _ = dump "flow_cons_proj.dot" ["contact_map",0;"flow",0]  cons2
+let _ = dump "flow_cons_match.dot" ~flags:["contact_map",0;"flow",0]  cons1
+let _ = dump "flow_cons_proj.dot" ~flags:["contact_map",0;"flow",0]  cons2
 
 
-let fragment, 
+let 
   [
     frag_shc,[frag_shc_Y7,_;frag_shc_pi,_];
     frag_egfr,[frag_egfr_l,_;frag_egfr_Y48,_]; 
-  ]
+  ],
+  fragment
   =
   add_in_graph 
-    empty 
     [
       shc,-5.,12.,[],
       [shc_Y7,[Direction w],[Bound_site[Direction nw]];
@@ -497,8 +498,9 @@ let fragment,
       egfr,-3.,12.,[],
       [egfr_l,[Direction s],[Bound_site  [Direction se]];
       egfr_Y48,[Direction w],[]]]
+    empty 
 
-let _,fragment = add_bound frag_egfr_l [Direction se] fragment 
+let _,fragment = add_bound frag_egfr_l ~directives:[Direction se] fragment 
 let fragment = add_link_list [frag_egfr_Y48,frag_shc_pi] fragment 
 
 let sigmarule,sigmafragment,prod =   disjoint_union rule (move_remanent_bellow 0. (translate_graph {abscisse = 6.;ordinate =  0.} fragment) lhs_domain)
@@ -507,23 +509,23 @@ let sigmarulel = compose_lift sigmarule sigmal
 let lift = 
   List.map (fun (x,y) -> lift_agent sigmaruler x,lift_agent sigmafragment y)
 let prod1 = add_match (lift [cons_egfr,frag_egfr;cons_shc,frag_shc]) prod
-let st,prod2 = add_site (lift_agent sigmaruler cons_egfr) egfr_l [Direction s;Color "red"] prod1 
-let _,prod2 = add_bound st [Color "red";Direction se] prod2 
-let st,prod2 = add_site (lift_agent sigmarulel cons_egfr) egfr_l [Direction s;Color "red"] prod2
-let _,prod2 = add_bound st [Color "red";Direction se] prod2 
-let _ = dump "flow_prod_match.dot" ["contact_map",0;"flow",0]  prod1
-let _ = dump "flow_prod_overlap.dot" ["contact_map",0;"flow",0]  prod2
+let st,prod2 = add_site (lift_agent sigmaruler cons_egfr) egfr_l ~directives:[Direction s;Color "red"] prod1 
+let _,prod2 = add_bound st ~directives:[Color "red";Direction se] prod2 
+let st,prod2 = add_site (lift_agent sigmarulel cons_egfr) egfr_l ~directives:[Direction s;Color "red"] prod2
+let _,prod2 = add_bound st ~directives:[Color "red";Direction se] prod2 
+let _ = dump "flow_prod_match.dot" ~flags:["contact_map",0;"flow",0]  prod1
+let _ = dump "flow_prod_overlap.dot" ~flags:["contact_map",0;"flow",0]  prod2
 
-let short_species, 
+let 
   [
     sp_egf1,[sp_egf1_r,_];
     sp_egfr1,[sp_egfr1_l,_;sp_egfr1_r,_;sp_egfr1_Y68,_;sp_egfr1_Y48,_];
     sp_egf2,[sp_egf2_r,_];
     sp_egfr2,[sp_egfr2_l,_;sp_egfr2_r,_;sp_egfr2_Y68,_;sp_egfr2_Y48,_];
-    sp_shc,[sp_shc_pi,_;sp_shc_Y7,_]]
+    sp_shc,[sp_shc_pi,_;sp_shc_Y7,_]],
+  short_species 
   =
   add_in_graph 
-    empty 
     [
       egf,1.,13.8,[Tag ("species",1)],
       [	egf_r,[Direction s],[]];
@@ -544,7 +546,7 @@ let short_species,
        shc,3.5,10.2,[],
       [shc_pi,[Direction n],[];
        shc_Y7,[Direction s],[Internal_state (shc_Y7_u,[Direction se]);Free_site [Direction s]]]]
-      
+    empty 
 
 
 let short_species = 
@@ -557,8 +559,8 @@ let short_species =
     ]
     short_species
 
-let _ = dump "flow_species.dot" []  short_species
-let _ = dump "flow_species_sp.dot" ["species",0]  (snd (add_free sp_egfr2_r [] short_species))
+let _ = dump "flow_species.dot" short_species
+let _ = dump "flow_species_sp.dot" ~flags:["species",0]  (snd (add_free sp_egfr2_r short_species))
 
 let short_species = 
   add_flow_list 
@@ -568,17 +570,16 @@ let short_species =
     short_species
 
  
-let _ = dump "flow_species_annotated.dot" []  short_species
-(*let _ = dump "flow_species_sp_annotated.dot" ["species",0]  (snd (add_free sp_egfr2_r [] short_species))*)
+let _ = dump "flow_species_annotated.dot" short_species
 
-let lhs_domain, 
+let 
   [
     cons_shc,[cons_shc_Y7,_;cons_shc_pi,_];
     cons_egfr,[cons_egfr_r,_;cons_egfr_Y48,_]; 
-  ]
+  ],
+  lhs_domain
   =
   add_in_graph 
-    empty 
     [
       shc,-5.,12.,[],
       [shc_Y7,[Direction w],[Free_site[Direction nw]];
@@ -586,6 +587,7 @@ let lhs_domain,
       egfr,-3.,12.,[],
       [egfr_r,[Direction e],[Bound_site [Direction se]];
       egfr_Y48,[Direction w],[]]]
+    empty 
 
 let lhs_domain = add_link_list [cons_egfr_Y48,cons_shc_pi] lhs_domain 
 
@@ -596,10 +598,10 @@ let _,_,_,rule =
   build_rule 
     lhs_domain 
     (fun remanent -> 
-      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_u [Direction sw] remanent))
+      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_u ~directives:[Direction sw] remanent))
     (fun remanent -> 
-      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_p [Direction sw] remanent))
-    [Direction s]
+      ([],[],[]),snd (add_internal_state cons_shc_Y7 shc_Y7_p ~directives:[Direction sw] remanent))
+    ~directives:[Direction s]
 
 
-let _ = dump "flow_cons_rule_s.dot" ["contact_map",0;"flow",0]  rule 
+let _ = dump "flow_cons_rule_s.dot" ~flags:["contact_map",0;"flow",0]  rule 

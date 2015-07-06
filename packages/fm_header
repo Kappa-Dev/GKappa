@@ -1,0 +1,14 @@
+% Just an ordinary comment
+%
+% Some special comments:
+% fmclass: report
+% fmclassopt: a4paper,twoside,8pt,twocolumn
+%
+% Another special comment:
+% head:
+% \usepackage{amsmath}
+% \usepackage{kappa}
+% \usepackage{anyfontsize}
+% \newcommand{\ladottext}[1]{\text{$#1$}}
+% end head
+

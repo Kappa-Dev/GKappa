@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-06-25 15:08:04 feret>
+ * Last modification: Time-stamp: <2015-07-06 07:22:49 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -19,6 +19,13 @@
 open Geometry
 
 type in_out = Inside | Outside 
+type ru_corner = 
+  { 
+    d_l : string ;
+    d_r : string ;
+    l_d : string ; 
+    r_d : string 
+  }
 type lo_corner =
   {
     b'_b:string;
@@ -170,6 +177,7 @@ type config =
     pairing_width: int;
     projection_width: int;
     cross_width: int;
+    rule_name_font: int;
     txt_font: int;
     binding_type_font: int;
     agent_label_font: int; 
@@ -197,12 +205,35 @@ type config =
     losange:  (string*string)*(string*(string*string))*(string*(string*string))*(string*(string*string))*(string*(string*string))*(string*string);
     losange_corners:lo_corner;
     losange_padding: float;
-  }
+    rule: (string*string)*(string*string);
+    rule_corners:ru_corner; 
+ }
 
 
 type co_mode = Empty | Middle | Corners
 
-			       
+let empty_ru =
+  { 
+    d_l = "" ; 
+    d_r = "" ; 
+    l_d = "" ;
+    r_d = "" 
+  }
+let middle_ru = 
+  { 
+    d_l = "" ; 
+    d_r = "" ;
+    l_d = "s" ;
+    r_d = "s" 
+  }
+let corners_ru =
+  { 
+    d_l = "ne" ; 
+    d_r = "nw" ;
+    l_d = "se" ;
+    r_d = "sw" ;
+  }
+
 let empty_co
   =
   {
@@ -295,7 +326,7 @@ let string_of_node_kind x =
   | State _ -> "State"
   | Rule_source -> "RuleS"
   | Rule_target -> "RuleT"
-  | Dummy_node -> "Dummy"
+  | Dummy_node -> "Dummy_node"
   | Free i -> "Free"^(string_of_int i)
   | Bound -> "Bound"
   | Empty_agent -> "Empty"
@@ -303,6 +334,9 @@ let string_of_node_kind x =
 let string_of_edge_kind x =
   match x 
   with 
+  | Free_symbol i -> ("-|"^(string_of_int i))
+  | Bound_symbol -> "-"
+  | Dummy_edge -> "Dummy_edge" 
   | Link -> "Link"
   | Relation (_,_) -> "Relation"
   | Rule -> "Rule"
@@ -592,13 +626,12 @@ let rec parse_attributes p s att item =
 let add_sig f item remanent = 
   let id = succ remanent.nsig_items in 
   let item = f id item in 
-   id,
-  {
+  id,{
     remanent 
    with 
      sig_items  = IdMap.add id item remanent.sig_items ; 
      nsig_items = id
-  }
+  } 
 
 let p_txt x = 
   match x with 
@@ -646,7 +679,7 @@ let compose_lift (ag1,site1,state1) (ag2,site2,state2) =
    compose site1 site2,
    compose state1 state2)
 
-let add_agent_type name attributes remanent = 
+let add_agent_type name ?directives:(attributes=[]) remanent = 
   let ag_c = remanent.nagent_sig_items +1 in 
   let remanent = {remanent with nagent_sig_items = ag_c} in 
   let f id item = {item with label = escaped name (Some item.fontsize) ; short_label = name } in 
@@ -665,7 +698,7 @@ let add_sibbling s_id s_type map =
   in 
   IdMap.add s_type (IdSet.add s_id old) map
 
-let add_son_type father error1 error2 error3 name dummy attributes p color_list remanent = 
+let add_son_type father error1 error2 error3 name dummy ?directives:(attributes=[]) p color_list remanent = 
   match IdMap.find_option father remanent.sig_items 
   with 
   | None -> 
@@ -689,10 +722,10 @@ let add_son_type father error1 error2 error3 name dummy attributes p color_list 
     in 
     s_id,{remanent with sig_items = IdMap.add father father_item remanent.sig_items}
 
-let add_site_type agent_type name attributes remanent = 
-  add_son_type agent_type "add_site_type" "a site" "agent" name (dummy_site_name remanent.config) attributes p_site_type remanent.config.site_colors remanent 
+let add_site_type agent_type name ?directives:(attributes=[]) remanent = 
+  add_son_type agent_type "add_site_type" "a site" "agent" name (dummy_site_name remanent.config) ~directives:attributes p_site_type remanent.config.site_colors remanent 
       
-let add_internal_state_type site_type state attributes remanent = add_son_type site_type "add_internal_state_type" "an internal state" "site" state (dummy_state_kind remanent.config) attributes p_state_type remanent.config.state_colors remanent 
+let add_internal_state_type site_type state ?directives:(attributes=[]) remanent = add_son_type site_type "add_internal_state_type" "an internal state" "site" state (dummy_state_kind remanent.config) ~directives:attributes p_state_type remanent.config.state_colors remanent 
 
 let name_of_node id remanent = 
   let rec aux id list = 
@@ -734,7 +767,7 @@ let add_node f item remanent =
      nitems = id
   }
 
-let add_agent agent_type abs ord attributes remanent = 
+let add_agent agent_type abs ord ?directives:(attributes=[]) remanent = 
   match 
     IdMap.find_option agent_type remanent.sig_items 
   with 
@@ -791,10 +824,10 @@ let add_son father son_type kind error1 error2 error3 attributes p remanent =
     let father_item = { father_item with sibblings = add_sibbling s_id son_type father_item.sibblings } in 
     s_id,{remanent with items = IdMap.add father father_item remanent.items}
 
-let add_site agent name attributes remanent = 
+let add_site agent name ?directives:(attributes=[]) remanent = 
   add_son agent name (Site name) "add_site" "a site" "agent" attributes p_site remanent 
       
-let add_internal_state site_type state attributes remanent = 
+let add_internal_state site_type state ?directives:(attributes=[])  remanent = 
   add_son site_type state (State site_type) "add_internal_state" "an internal state" "site" attributes p_state remanent
 
 let op edge = 
@@ -861,7 +894,7 @@ let pen_width_of edge =
   if edge.width < 2. then "1" 
   else string_of_int (int_of_float edge.width)
     
-let add_free site_id attributes remanent = 
+let add_free site_id ?directives:(attributes=[]) remanent = 
   match 
     IdMap.find_option site_id remanent.items 
   with 
@@ -883,7 +916,7 @@ let add_free site_id attributes remanent =
     let remanent = add_link {item with kind = Free_symbol 1} site_id id1 (add_link {item with kind = Free_symbol 2} id2 id3 remanent) in 
     id1,{remanent with items = IdMap.add site_id {site with sibblings = add_sibbling id1 (-1) (add_sibbling id2 (-1) (add_sibbling id3 (-1) site.sibblings))} remanent.items}
 
-let add_bound site_id attributes remanent = 
+let add_bound site_id ?directives:(attributes=[]) remanent = 
   match 
     IdMap.find_option site_id remanent.items 
   with 
@@ -903,7 +936,7 @@ let add_bound site_id attributes remanent =
 
  
 
-let insert_text_here s x y d remanent = 
+let insert_text_here s x y ?directives:(d=[]) remanent = 
    let item = parse_attributes p_txt "txt" d (dummy_txt_item remanent.config) in 
    let item = 
     {item 
@@ -916,8 +949,8 @@ let insert_text_here s x y d remanent =
 
 
 	  
-let add_binding_type site_id site_type attributes remanent =
-  let id,remanent = add_bound site_id attributes remanent in
+let add_binding_type site_id site_type ?directives:(attributes=[]) remanent =
+  let id,remanent = add_bound site_id ~directives:attributes remanent in
   match 
     IdMap.find_option id remanent.items,
     IdMap.find_option site_type remanent.sig_items 
@@ -950,7 +983,7 @@ let add_binding_type site_id site_type attributes remanent =
        in
        let ag_string,s_string = escape_short ag_string s_string in 
        let txt = ag_string^"."^s_string in
-       let remanent = insert_text_here txt p'.abscisse p'.ordinate [Fontsize remanent.config.binding_type_font] remanent in
+       let remanent = insert_text_here txt p'.abscisse p'.ordinate ~directives:[Fontsize remanent.config.binding_type_font] remanent in
 	   id,remanent
      end
   | _,_ ->
@@ -1061,7 +1094,7 @@ let dump_edge_list chan filter remanent (n1,n2) l =
 	      aux q accu accu2
 	    else 
 	      begin
-		if edge.corner1 = None && edge.corner2 = None
+		if edge.corner1 <> None && edge.corner2 <> None
 		then
 		  aux q accu (edge::accu2)
 		else
@@ -1089,7 +1122,7 @@ let dump_edge_list chan filter remanent (n1,n2) l =
     in
     List.iter (fun edge -> dump_edge chan (n1,n2) edge remanent) b
 
-let dump file filter remanent = 
+let dump file ?flags:(filter=[]) remanent = 
   let chan = open_out file in 
   let _ = Printf.fprintf chan "digraph G {\n\n" in 
   let _ = 
@@ -1106,67 +1139,68 @@ let dump file filter remanent =
   let _ = close_out chan in 
   ()
     
-let new_internal_state_type agent_type site_type state d (remanent,state_list) = 
-  let id,remanent = add_internal_state_type site_type state d remanent in 
-  remanent,(id::state_list)
+let new_internal_state_type agent_type site_type state ?directives:(d=[]) (state_list,remanent) = 
+  let id,remanent = add_internal_state_type site_type state ~directives:d remanent in 
+  (id::state_list),remanent
     
-let new_site_type agent_type site_type state_list d (remanent,site_list) = 
-  let id,remanent = add_site_type agent_type site_type d remanent in 
-  let remanent,list = 
+let new_site_type agent_type site_type state_list ?directives:(d=[]) (site_list,remanent) = 
+  let id,remanent = add_site_type agent_type site_type ~directives:d remanent in 
+  let list,remanent = 
     List.fold_left 
-      (fun (remanent,list) (state,d) -> 
-	new_internal_state_type agent_type id state d (remanent,list)) (remanent,[]) state_list 
+      (fun (list,remanent) (state,d) -> 
+	new_internal_state_type agent_type id state ~directives:d (list,remanent)) ([],remanent) state_list 
   in 
-  remanent,(id,List.rev list)::site_list
+  (id,List.rev list)::site_list,remanent
     
-let new_agent_type agent_type site_list d (remanent,agent_list) = 
-  let id,remanent = add_agent_type agent_type d remanent in 
-  let remanent,list = 
+let new_agent_type agent_type site_list ?directives:(d=[]) (agent_list,remanent) = 
+  let id,remanent = add_agent_type agent_type ~directives:d remanent in 
+  let list,remanent = 
     List.fold_left 
-      (fun (remanent,list) (site,d,state_list ) -> 
-	new_site_type id site state_list d (remanent,list)) 
-      (remanent,[]) site_list 
+      (fun (list,remanent) (site,d,state_list ) -> 
+	new_site_type id site state_list ~directives:d (list,remanent)) 
+      ([],remanent) site_list 
   in 
-  remanent,(id,List.rev list)::agent_list
+  (id,List.rev list)::agent_list,remanent
     
-let add_in_signature remanent (signature:signature) = 
-  let remanent,list = 
+let add_in_signature (signature:signature) remanent = 
+  let list,remanent = 
     List.fold_left 
-      (fun (remanent,list) (agent,d,site_list) -> 
-	new_agent_type agent site_list d (remanent,list))
-      (remanent,[]) signature 
-  in remanent,List.rev list
+      (fun (list,remanent) (agent,d,site_list) -> 
+	new_agent_type agent site_list ~directives:d (list,remanent))
+      ([],remanent) 
+      signature 
+  in List.rev list,remanent
     
-let new_state agent site (remanent,state_list) state =       
+let new_state agent site (state_list,remanent) state  =       
   let id,remanent = 
     match state
     with 
-    | Free_site op  -> add_free site op remanent
-    | Bound_site op -> add_bound site op remanent 
-    | Internal_state (op1,op2) -> add_internal_state site op1 op2  remanent 
+    | Free_site op  -> add_free site ~directives:op remanent
+    | Bound_site op -> add_bound site ~directives:op remanent 
+    | Internal_state (op1,op2) -> add_internal_state site op1 ~directives:op2  remanent 
   in 
-  remanent,id::state_list 
+  id::state_list,remanent
     
-let new_site agent (remanent,site_list) (site,directives,states) = 
-  let site,remanent = add_site agent site  directives remanent in 
-  let remanent,states  = 
+let new_site agent (site_list,remanent) (site,directives,states)   = 
+  let site,remanent = add_site agent site ~directives:directives remanent in 
+  let states,remanent  = 
     List.fold_left 
       (new_state agent site) 
-      (remanent,[]) 
+      ([],remanent) 
       states 
   in 
-  remanent,((site,List.rev states)::site_list)
+  (site,List.rev states)::site_list,remanent
     
-let new_agent (remanent,agent_list) (ag,op1,op2,op3,l)  = 
-  let agent,remanent = add_agent ag op1 op2 op3 remanent in 
-  let remanent,sites = List.fold_left (new_site agent) (remanent,[]) l in 
-  remanent,(agent,List.rev sites)::agent_list
+let new_agent (agent_list,remanent) (ag,op1,op2,op3,l)  = 
+  let agent,remanent = add_agent ag op1 op2 ~directives:op3 remanent in 
+  let sites,remanent = List.fold_left (new_site agent) ([],remanent) l in 
+  (agent,List.rev sites)::agent_list,remanent
       
-let add_in_graph (remanent:remanent_state) (l:graph) = 
-  let remanent,l = 
-    List.fold_left new_agent (remanent,[]) l
+let add_in_graph l remanent = 
+  let l,remanent = 
+    List.fold_left new_agent ([],remanent) l
   in 
-  remanent, (List.rev l:graph_vars)
+  List.rev l,remanent
     
     
 let edge_list f l remanent = 
@@ -1183,7 +1217,7 @@ let add_weak_flow_and_link_list = edge_list add_weak_flow_and_link
 let add_free_list l remanent = 
   List.fold_left 
     (fun (list,remanent) (site,directives) -> 
-      let a,remanent = add_free site directives remanent in 
+      let a,remanent = add_free site ~directives:directives remanent in 
       a::list,remanent)
     ([],remanent)
     l 
@@ -1511,7 +1545,7 @@ let init config =
   let remanent = init config in 
   add_agent_type 
     "" 
-    [Width (0.);Height(0.);FillColor("white");Color("white")]
+    ~directives:[Width (0.);Height(0.);FillColor("white");Color("white")]
     remanent
     
 let dummy_node_type = 1 
@@ -1525,11 +1559,18 @@ let add_dummy_agent string x y directives remanent =
   let item = parse_attributes (fun _ -> true) "" directives { dummy_item with coordinate = {abscisse = x ; ordinate = y}} in 
   add_node f {item with width = 0. ; height = 0. ; color = "white" ; style = ""} remanent 
        
-let add_rule x y directives remanent = 
-  let item = {dummy_item with coordinate = {abscisse = x ; ordinate = y} ; width = float_of_int (remanent.config.rule_width) ; height = remanent.config.rule_length ; orientation = e} in 
+let p_agent ag =
+  match ag.kind
+  with
+  | Agent _ | Empty_agent -> true
+  | _ -> false
+
+let add_rule x y ?directives:(directives=[]) remanent = 
+  let item = {dummy_item with coordinate = {abscisse = x ; ordinate = y} ; width = float_of_int (remanent.config.rule_width) ; height = remanent.config.rule_length ; orientation = e ; fontsize = remanent.config.rule_name_font} in 
   let item = parse_attributes (fun _ -> true) "" directives item  in  
   let size = item.width in 
-  let angle = item.orientation.radius in 
+  let angle' = item.orientation in 
+  let angle = angle'.radius in 
   let x = item.coordinate.abscisse in 
   let y = item.coordinate.ordinate in 
   let x1 = x +. size *. (sin angle) /. 2. in 
@@ -1547,11 +1588,27 @@ let add_rule x y directives remanent =
     remanent 
   | Some node1,Some node2
     -> 
-    add_link 
-      {(rule remanent.config) 
-       with width = item.width ; comment = item.comment ;
-	color = item.color ; tags = item.tags } node_id2 node_id1 remanent 
-      
+    let g = 
+      add_link 
+	{(rule remanent.config) 
+	 with width = item.width ; 
+	   color = item.color ; tags = item.tags } node_id2 node_id1 remanent 
+    in 
+    if item.comment = "" 
+    then 
+      g
+    else 
+      let angle = anticlockwise angle' 90. in 
+      let cangle = cos (to_radius angle) in 
+      let cangle = 
+	if cangle > 0. then cangle else -.cangle 
+      in 
+      let d = 
+	(0.023*.(float_of_int remanent.config.binding_type_font)+.(dummy_txt_item remanent.config).height/.2.)*.cangle
+      in 
+      let c = point_on_ellipse {abscisse=x;ordinate=y} d d angle 1. in 
+      insert_text_here item.comment c.abscisse c.ordinate g 
+
 let cross remanent = 
   let directives = [] in 
   let comment = "" in 
@@ -1609,68 +1666,16 @@ let lift_site_list sigma =
 let lift_agent_list sigma = 
   lift_list2 (lift_agent sigma) (lift_site_list sigma)
 
-let build_rule domain extend_lhs extend_rhs directives = 
-  let node = {dummy_item with orientation = e ; width = float_of_int (domain.config.rule_width)} in 
-  let node = parse_attributes (fun _ -> true) "" directives node in 
-  let angle = sample_angle node.orientation in 
-  let (l1,l2,l3),lhs = extend_lhs domain in 
-  let (r1,r2,r3),rhs = extend_rhs domain in 
-  let lhs = tag_all_nodes "lhs" 1 lhs in 
-  let rhs = tag_all_nodes "rhs" 1 rhs in 
-  let cornerlhs = 
-    match 
-      corners lhs
-    with 
-      Some (xm,xM,ym,yM) -> xm,xM,ym,yM 
-    | None -> 0.,0.,0.,0.
-  in 
-  let cornerrhs = 
-    match 
-      corners rhs
-    with 
-      Some (xm,xM,ym,yM) -> xm,xM,ym,yM 
-    | None -> 0.,0.,0.,0.
-  in 
-  let distance = (1.+.domain.config.rule_margin*.2.)*. node.width in
-  let rulex,ruley,deltax,deltay = compute_padding cornerlhs cornerrhs angle distance in 
-  let sigmal,sigmar,rule = disjoint_union lhs (translate_graph {abscisse=deltax;ordinate=deltay} rhs) in 
-  let rule = add_rule rulex ruley directives rule in 
-  sigmal,
-  sigmar,
-  (List.concat [lift_agent_list sigmal l1;lift_agent_list sigmar r1],
-  List.concat [lift_site_list sigmal l2;lift_site_list sigmar r2],
-  List.concat [lift_state_list sigmal l3;lift_state_list sigmar r3]),
-  rule
+let move graph cx cy =
+    match corners_p p_agent graph
+    with
+      None -> graph
+    | Some (minx,maxx,miny,maxy) ->
+       let x = (maxx+.minx)/.2. in
+       let y = (maxy+.miny)/.2. in
+       translate_graph {abscisse=cx-.x;ordinate=cy-.y} graph 
 
-let fill_empty g =
-  if is_empty g
-  then
-    let a,b = add_empty_graph 0. 0. g in
-    [a],b
-  else
-    [],g
-
-
-let p_agent ag =
-  match ag.kind
-  with
-  | Agent _ | Empty_agent -> true
-  | _ -> false
-    	   
-let build_losange ?file:(file="") ?hgap:(hgap=None) ?vgap:(vgap=None) ?bottom:(bottom=None) extend_left extend_right ?extend_top:(extend_top=(fun _ _ g -> ([],[],[]),g)) ?top:(top=None) ?piv_left:(piv_left=(fun x->x)) ?piv_right:(piv_right=(fun x->x)) graph =
-  let c = graph.config.losange_corners in 
-  let hpadding =
-    match hgap with
-      None -> graph.config.losange_padding
-    | Some a -> a
-  in
-  let vpadding =
-    match vgap with
-      None -> graph.config.losange_padding
-    | Some a -> a
-  in 
-  let (style_1,color_1),(style_2,(color_2l,color_2r)),(style_3,(color_3l,color_3r)),(style_4,(color_4l,color_4r)),(style_5,(color_5l,color_5r)),(style_6,color_6) = graph.config.losange in
-  let bind (extrag1,g1) (extrag2,g2) c1 c2 i1 i2 style color g =
+ let bind (extrag1,g1) (extrag2,g2) c1 c2 i1 i2 style color g =
     add_emb ~color:color ~style:style ~ca:(Some c1) ~cb:(Some c2) 
 	    (match extrag1,extrag2
 	     with [a],[b] -> [i1 a,i2 b]
@@ -1688,9 +1693,116 @@ let build_losange ?file:(file="") ?hgap:(hgap=None) ?vgap:(vgap=None) ?bottom:(b
 			    (fun _ -> IdSet.fold (fun a l -> (i1 a,i2 a)::l))
 			   g1.agents
 			   []
-	    )
-            g
-  in						 
+	    ) g
+ 
+let fill_empty g =
+  if is_empty g
+  then
+    let a,b = add_empty_graph 0. 0. g in
+    [a],b
+  else
+    [],g
+
+let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(explicit=false) ?directives:(directives=[])   domain extend_lhs extend_rhs  =
+  let (stylel,colorl),(styler,colorr) = domain.config.rule in 
+  let c = domain.config.rule_corners in 
+  let node = {dummy_item with orientation = e ; width = float_of_int (domain.config.rule_width)} in 
+  let node = parse_attributes (fun _ -> true) "" directives node in 
+  let (rule_width:float),(rule_margin:float) = 
+    match vgap 
+    with 
+     | None -> node.width,domain.config.rule_margin
+     | Some (v:float) -> 
+       let a,b = node.width,domain.config.rule_margin in 
+       let _ = a*.a in 
+       let _ = a+.b in 
+       a*.v/.(a+.b),
+       b*.v/.(a+.b)
+  in
+  let node = {node with width = rule_width} in 
+  let alpha = 
+    match hgap 
+    with None -> 0.75
+    | Some (a:float) -> 
+      a/.(rule_width+.2.*.rule_margin)
+  in
+  let angle = sample_angle node.orientation in 
+  let (l1,l2,l3),lhs = extend_lhs domain in 
+  let (r1,r2,r3),rhs = extend_rhs domain in 
+  let extra_domain,domain = fill_empty domain in 
+  let extra_lhs,lhs = fill_empty lhs in 
+  let extra_rhs,rhs = fill_empty rhs in 
+  let lhs = tag_all_nodes "lhs" 1 lhs in 
+  let rhs = tag_all_nodes "rhs" 1 rhs in 
+   let cornerlhs = 
+    match 
+      corners lhs,corners_p p_agent rhs 
+    with 
+      Some (xm,xM,_,_),Some (_,_,ym,yM) -> xm,xM,ym,yM 
+    | None,_ | _,None -> 0.,0.,0.,0.
+  in 
+  let cornerrhs = 
+    match 
+      corners rhs,corners_p p_agent rhs
+     with 
+       Some (xm,xM,_,_), Some(_,_,ym,yM) -> xm,xM,ym,yM 
+     | None,_ | _,None -> 0.,0.,0.,0.
+  in 
+  let distance = (1.+.rule_margin*.2.)*. node.width in
+  let rulex,ruley,deltax,deltay,distancex,distancey = compute_padding cornerlhs cornerrhs angle distance in 
+  let sigmal,sigmar,rule = disjoint_union lhs (translate_graph {abscisse=deltax;ordinate=deltay} rhs) in 
+  let rule = add_rule rulex ruley ~directives:directives rule in 
+  let sigma,rule =
+    if explicit
+    then 
+      let domain = move domain (rulex-.distancey*.alpha) 
+	(ruley-.distancex*.alpha) in 
+      let _,inj,rule = disjoint_union domain rule in 
+      inj,rule
+    else 
+      ((fun x->x),(fun x->x),(fun x->x)),rule 
+  in 
+  let sigmal = compose_lift sigma sigmal in 
+  let sigmar = compose_lift sigma sigmar in 
+  let rule = 
+    if explicit 
+    then 
+      let rule = bind (extra_domain,domain) (extra_lhs,lhs) (rotate_co c.d_l angle) (rotate_co c.l_d angle) (fun x->x) (lift_agent sigmal) stylel colorl rule in 
+      let rule = bind (extra_domain,domain) (extra_rhs,rhs) (rotate_co c.d_r angle) (rotate_co c.r_d angle) (fun x->x) (lift_agent sigmar) styler colorr rule in 
+      rule
+    else rule 
+  in 
+  let _ =
+    if file="" 
+    then 
+      ()
+    else 
+      dump file rule 
+  in 
+  sigmal,
+  sigmar,
+  (List.concat [lift_agent_list sigmal l1;lift_agent_list sigmar r1],
+   List.concat [lift_site_list sigmal l2;lift_site_list sigmar r2],
+   List.concat [lift_state_list sigmal l3;lift_state_list sigmar r3]),
+  rule
+    
+
+
+    	   
+let build_losange ?file:(file="") ?hgap:(hgap=None) ?vgap:(vgap=None) ?bottom:(bottom=None) extend_left extend_right ?extend_top:(extend_top=(fun _ _ g -> ([],[],[]),g)) ?top:(top=None) ?piv_left:(piv_left=(fun x->x)) ?piv_right:(piv_right=(fun x->x)) graph =
+  let c = graph.config.losange_corners in 
+  let hpadding =
+    match hgap with
+      None -> graph.config.losange_padding
+    | Some a -> a
+  in
+  let vpadding =
+    match vgap with
+      None -> graph.config.losange_padding
+    | Some a -> a
+  in 
+  let (style_1,color_1),(style_2,(color_2l,color_2r)),(style_3,(color_3l,color_3r)),(style_4,(color_4l,color_4r)),(style_5,(color_5l,color_5r)),(style_6,color_6) = graph.config.losange in
+ 						 
   let g_bottom' =
     match bottom
     with
@@ -1729,15 +1841,6 @@ let build_losange ?file:(file="") ?hgap:(hgap=None) ?vgap:(vgap=None) ?bottom:(b
     with
       None -> 0.,0.
     | Some (minx,maxx,miny,maxy) -> maxx-.minx,maxy-.miny
-  in 
-  let move graph cx cy =
-    match corners_p p_agent graph
-    with
-      None -> graph
-    | Some (minx,maxx,miny,maxy) ->
-       let x = (maxx+.minx)/.2. in
-       let y = (maxy+.miny)/.2. in
-       translate_graph {abscisse=cx-.x;ordinate=cy-.y} graph 
   in
   let alpha = match g_bottom',g_top' with None,None -> 2. | _ -> 1. in
   let g_bottom' =
@@ -1776,6 +1879,7 @@ let build_losange ?file:(file="") ?hgap:(hgap=None) ?vgap:(vgap=None) ?bottom:(b
 			 let g = bind (extra_bottom',g_bottom') (extra_left,g_left) c.b'_l c.l_b'  t tl style_2 color_2l g in
 			 let g = bind (extra_bottom',g_bottom') (extra_right,g_right) c.b'_r c.r_b' t tr style_2 color_2r g in
 			 g,t1::tl::tr::q
+		      | _ -> failwith "internal error in build_losange" 
 		    end
   in
   match l with
@@ -1796,9 +1900,10 @@ let build_losange ?file:(file="") ?hgap:(hgap=None) ?vgap:(vgap=None) ?bottom:(b
 	 g
     in 
     let (id:lift) = (fun x-> x),(fun y->y),(fun z->z) in
-    let _ = if file <> "" then dump file [] g in
+    let _ = if file <> "" then dump file g in
     (Some id,id,id,id,id,Some id),
     (([],[],[]):valuation),g
+  | _ -> failwith "internal error in build_losange" 
 		  
 let rename_tag s s' = 
   let f = 
@@ -1940,7 +2045,7 @@ let proj_flow_on_a_species ?file:(s="") ?padding:(padding=1.) ?angle:(angle = e)
   let angle = sample_angle angle in 
   let padding = rule.config.flow_padding *. padding in 
   let distance = padding*. ((xM-.xm)*.(sin (to_radius angle)) +. (yM-.ym)*.(cos (to_radius angle))) in 
-  let rulex,ruley,deltax,deltay = compute_padding (xm,xM,ym,yM) (xm',xM',ym',yM') angle distance in 
+  let rulex,ruley,deltax,deltay,_,_ = compute_padding (xm,xM,ym,yM) (xm',xM',ym',yM') angle distance in 
   let rule = rename_tag "flow" "rule_flow" rule in 
   let agent_map = 
     List.fold_left (fun map (x,y) -> IdMap.add x y map) IdMap.empty l in 
@@ -1955,11 +2060,11 @@ let proj_flow_on_a_species ?file:(s="") ?padding:(padding=1.) ?angle:(angle = e)
     match s with 
     | "" -> ()
     | _  -> 
-      let _ = dump (s^"0.dot") ["rule_flow",0;"sp_flow",0] rule_species in 
-      let _ = dump (s^"1.dot") ["rule_flow",1;"sp_flow",0] rule_species in 
-      let _ = dump (s^"2.dot") ["rule_flow",1;"sp_flow",0] rule_species_with_proj in 
-      let _ = dump (s^"3.dot") ["rule_flow",1;"sp_flow",1] rule_species_with_proj in 
-      let _ = dump (s^"4.dot") ["rule_flow",1;"sp_flow",1] rule_species in 
+      let _ = dump (s^"0.dot") ~flags:["rule_flow",0;"sp_flow",0] rule_species in 
+      let _ = dump (s^"1.dot") ~flags:["rule_flow",1;"sp_flow",0] rule_species in 
+      let _ = dump (s^"2.dot") ~flags:["rule_flow",1;"sp_flow",0] rule_species_with_proj in 
+      let _ = dump (s^"3.dot") ~flags:["rule_flow",1;"sp_flow",1] rule_species_with_proj in 
+      let _ = dump (s^"4.dot") ~flags:["rule_flow",1;"sp_flow",1] rule_species in 
       () 
   in sigma_rule,sigma_sp,rule_species,rule_species_with_proj
 
@@ -1990,12 +2095,12 @@ let proj_flow_on_a_contact_map ?file:(s="") ?padding:(padding=1.) ?angle:(angle 
     contact_map
     agent_map
 
-let insert_text_on_boarder list ?inside:(x=Outside) d  graph = 
+let insert_text_on_boarder list ?inside:(x=Outside) ?directives:(d=[])  graph = 
   match corners graph 
   with 
   | None -> 
 	List.fold_left 
-	  (fun graph (s,_) -> insert_text_here s 0. 0. d graph)
+	  (fun graph (s,_) -> insert_text_here s 0. 0. ~directives:d graph)
 	  graph list 
   | Some (x_min,x_max,y_min,y_max) -> 
     let x = (x_min+.x_max)/.2. in 
@@ -2013,7 +2118,7 @@ let insert_text_on_boarder list ?inside:(x=Outside) d  graph =
 	    direction
 	    1.
 	in 
-	insert_text_here s center.abscisse center.ordinate d remanent )
+	insert_text_here s center.abscisse center.ordinate ~directives:d remanent )
       graph list 
 
 
@@ -2023,3 +2128,10 @@ let set_co init mode =
 	       with Empty -> {init.config with losange_corners = empty_co}
 		  | Middle -> {init.config with losange_corners = middle_co}
 		  | Corners -> {init.config with losange_corners = corners_co}}
+
+let set_ru init mode =
+  {init with config =
+	       match mode
+	       with Empty -> {init.config with rule_corners = empty_ru}
+		  | Middle -> {init.config with rule_corners = middle_ru}
+		  | Corners -> {init.config with rule_corners = corners_ru}}
