@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-04-05 feret>
- * Last modification: Time-stamp: <2015-07-03 18:32:11 feret>
+ * Last modification: Time-stamp: <2015-07-08 09:32:26 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -73,13 +73,16 @@ let clockwise angle1 angle2 =
 let anticlockwise angle1 angle2 = 
   angle_of_decl (Degree ((angle1.degree -. angle2)))
 
-let rec mod_angle x = 
-  if x<0. then mod_angle (x+.360.)
-  else if x>360. then mod_angle (x-.360.)
-  else x 
+let mod_angle x =
+  let rec aux x =  
+    if x<0. then aux (x+.360.)
+    else if x>360. then aux (x-.360.)
+    else x 
+  in 
+  of_degree (aux x.degree)
 
 let sample_angle x = 
-  let angle = mod_angle (to_degree x) in 
+  let angle = (mod_angle x).degree in 
   let rec scan x rep = 
     if angle < x then of_degree rep
     else scan (x+.45.) (rep+.45.)
@@ -132,7 +135,7 @@ let rotate_co x d =
    y_min +. (x-.x_min)*.(y_max -.y_min)/.(x_max -. x_min)
 
  let correct_angle_on_rect width height  direction  = 
-      let angle = mod_angle direction.radius in 
+      let angle = (mod_angle direction).radius in 
       let angle_rectangle = atan (width/.height) in 
       if angle <= pi/.4. 
       then 
@@ -148,7 +151,7 @@ let rotate_co x d =
 	of_radius  (interpolation angle (7.*.pi/.4.) (2.*.pi) (2.*.pi-.angle_rectangle) (2.*.pi))
 
 let point_on_rectangle_ext center width height  direction scale delta = 
-      let angle = mod_angle direction.radius in 
+      let angle = (mod_angle direction).radius in 
       let angle_rectangle = atan (width/.height) in 
       if angle <= angle_rectangle 
       then
@@ -179,8 +182,8 @@ let point_on_rectangle_ext center width height  direction scale delta =
 let point_on_rectangle center width height direction scale = 
       point_on_rectangle_ext center width height direction scale 0. 
 
-let point_on_hexagone_ext center width height  direction scale delta = 
-      let angle = mod_angle direction.radius in 
+let point_on_hexagone_ext center width height direction scale delta = 
+      let angle = (mod_angle direction).radius in 
       if width > height 
       then 
 	begin 
@@ -191,7 +194,9 @@ let point_on_hexagone_ext center width height  direction scale delta =
 	  then 
 	    point_on_rectangle_ext center height height direction scale delta
 	  else
-	     point_on_ellipse_ext center width height direction scale delta
+	    point_on_ellipse_ext center width height 
+	      direction 
+	      scale delta
 	end
       else 
 	begin 
