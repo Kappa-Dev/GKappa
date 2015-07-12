@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation: March, the 28th of 2015
- * Last modification: Time-stamp: <2015-07-06 08:40:06 feret>
+ * Last modification: Time-stamp: <2015-07-11 13:58:46 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -185,11 +185,6 @@ val is_empty: remanent_state -> bool
 
 val unify_id: remanent_state * remanent_state -> remanent_state * remanent_state 
 
-
-(*val add_empty_graph: float -> float -> remanent_state -> agent * remanent_state *)
-
-  
-
 val add_strong_flow_and_link: site -> site -> remanent_state -> remanent_state 
 val add_flow_and_link_list : (site*site) list -> remanent_state -> remanent_state
 val add_flow_list: (site*site) list -> remanent_state -> remanent_state 
@@ -224,13 +219,13 @@ val move_remanent_left_to: float -> remanent_state -> remanent_state -> remanent
 val move_remanent_above: float -> remanent_state -> remanent_state -> remanent_state 
 val move_remanent_bellow: float -> remanent_state -> remanent_state -> remanent_state 
 
-val add_rule: float -> float -> ?directives:directive list -> remanent_state -> remanent_state
+val add_rule: float -> float -> ?reversible:bool -> ?directives:directive list -> remanent_state -> remanent_state
 val corners: remanent_state -> (float * float * float * float) option 
 val cross: remanent_state -> remanent_state 
 			       
 
 type valuation = graph_vars * (site * state list) list * state list 
-val build_rule: ?file:string -> ?hgap:(float option) -> ?vgap:(float option) -> ?explicit:bool ->  ?directives:directive list -> remanent_state -> (remanent_state -> valuation * remanent_state) -> (remanent_state -> valuation * remanent_state) ->  lift * lift * valuation * remanent_state
+val build_rule: ?file:string -> ?hgap:(float option) -> ?vgap:(float option) -> ?explicit:bool ->  ?reversible:bool -> ?directives:directive list -> remanent_state -> (remanent_state -> valuation * remanent_state) -> (remanent_state -> valuation * remanent_state) ->  lift * lift * valuation * remanent_state
 
 val build_losange: ?file:string  -> ?hgap:(float option) -> ?vgap:(float option) -> ?bottom:((remanent_state -> valuation * remanent_state) option) -> (remanent_state -> valuation * remanent_state) -> (remanent_state -> valuation * remanent_state) -> ?extend_top:(valuation -> valuation -> remanent_state -> valuation * remanent_state) -> ?top:((valuation -> valuation -> valuation -> remanent_state -> valuation * remanent_state * (valuation -> valuation -> lift)) option) -> ?piv_left:(remanent_state -> remanent_state) -> ?piv_right:(remanent_state -> remanent_state) -> remanent_state -> (lift option * lift * lift * lift * lift * lift option) * valuation * remanent_state 
 val proj_flow_on_a_species: ?file:string -> ?padding:float -> ?angle:angle -> ?flow:(site * site) list -> remanent_state -> remanent_state -> (agent * agent) list -> lift * lift * remanent_state * remanent_state 
@@ -239,4 +234,4 @@ val proj_flow_on_a_contact_map: ?file:string -> ?padding:float -> ?angle:angle -
 
 val insert_text_here: string -> float -> float -> ?directives:directive list -> remanent_state -> remanent_state
 val insert_text_on_boarder: (string * angle) list  -> ?inside:in_out -> ?directives:directive list -> remanent_state -> remanent_state 
-
+val color:string -> ?flags:((tag*int) list) -> remanent_state -> remanent_state 

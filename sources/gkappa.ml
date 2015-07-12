@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation:                      <2015-03-28 feret>
- * Last modification: Time-stamp: <2015-07-06 08:45:23 feret>
+ * Last modification: Time-stamp: <2015-07-11 13:58:14 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -638,8 +638,8 @@ let add_sig f item remanent =
 
 let p_txt x = 
   match x with 
-  | Comment _ | Tag _ | Direction _  | Set_scale _ | Scale _ | Radius _ | Shape _ | FillColor _ -> false 
-  | Color _ | Fontsize _  | Width _ | Height _ -> true 
+  | Comment _ | Tag _ | Direction _  | Set_scale _ | Scale _ | Radius _ -> false 
+  | Shape _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true 
 
 let p_agent_type x =
   match x with 
@@ -1151,6 +1151,8 @@ let dump file ?flags:(filter=[]) remanent =
   let _ = Printf.fprintf chan "}\n" in 
   let _ = close_out chan in 
   ()
+
+
     
 let new_internal_state_type agent_type site_type state ?directives:(d=[]) (state_list,remanent) = 
   let id,remanent = add_internal_state_type site_type state ~directives:d remanent in 
@@ -1246,6 +1248,24 @@ let map_node f1 f2 remanent =
     edges = Id2Map.map (fun x -> List.rev_map f2 (List.rev x)) remanent.edges 
   }
 
+let color s ?flags:(filter=[]) remanent = 
+  map_node 
+    (fun item -> 
+        let tags = item.tags in 
+	if filter_tags filter tags 
+	then 
+	  {item with color = s}
+	else 
+	  item)
+    (fun edge -> 
+      let tags = edge.tags in 
+      if filter_tags filter tags 
+      then 
+	{edge with color = s}
+      else 
+	edge)
+    remanent
+ 
 let apply_opt f opt = 
   match 
     opt
@@ -1578,7 +1598,7 @@ let p_agent ag =
   | Agent _ | Empty_agent -> true
   | _ -> false
 
-let add_rule x y ?directives:(directives=[]) remanent = 
+let add_rule x y ?reversible:(reversible=false) ?directives:(directives=[]) remanent = 
   let item = {dummy_item with coordinate = {abscisse = x ; ordinate = y} ; width = float_of_int (remanent.config.rule_width) ; height = remanent.config.rule_length ; orientation = e ; fontsize = remanent.config.rule_name_font} in 
   let item = parse_attributes (fun _ -> true) "" directives item  in  
   let size = item.width in 
@@ -1606,6 +1626,17 @@ let add_rule x y ?directives:(directives=[]) remanent =
 	{(rule remanent.config) 
 	 with width = item.width ; 
 	   color = item.color ; tags = item.tags } node_id2 node_id1 remanent 
+    in 
+    let g = 
+      if reversible 
+      then 
+	add_link 
+	  {(rule remanent.config) with 
+	    width = item.width ;
+	    color = item.color ; tags = item.tags } 
+	  node_id1 node_id2 g
+      else 
+	g
     in 
     if item.comment = "" 
     then 
@@ -1710,7 +1741,7 @@ let move graph cx cy =
  
 
 
-let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(explicit=false) ?directives:(directives=[])   domain extend_lhs extend_rhs  =
+let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(explicit=false) ?reversible:(reversible=false) ?directives:(directives=[])   domain extend_lhs extend_rhs  =
   let (stylel,colorl),(styler,colorr) = domain.config.rule in 
   let c = domain.config.rule_corners in 
   let node = {dummy_item with orientation = e ; width = float_of_int (domain.config.rule_width)} in 
@@ -1739,6 +1770,15 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
   let extra_domain,domain = fill_empty domain in 
   let extra_lhs,lhs = fill_empty lhs in 
   let extra_rhs,rhs = fill_empty rhs in 
+  let correct extra l  = 
+    match extra
+    with 
+    | [a] -> [a,[]]
+    | [] -> l
+    | _ -> failwith "bug in build_rule" 
+  in 
+  let l1 = correct extra_lhs l1 in 
+  let r1 = correct extra_rhs r1 in 
   let lhs = tag_all_nodes "lhs" 1 lhs in 
   let rhs = tag_all_nodes "rhs" 1 rhs in 
    let cornerlhs = 
@@ -1758,7 +1798,7 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
   let distance = (1.+.rule_margin*.2.)*. node.width in
   let rulex,ruley,deltax,deltay,distancex,distancey = compute_padding cornerlhs cornerrhs angle distance in 
   let sigmal,sigmar,rule = disjoint_union lhs (translate_graph {abscisse=deltax;ordinate=deltay} rhs) in 
-  let rule = add_rule rulex ruley ~directives:directives rule in 
+  let rule = add_rule rulex ruley ~reversible:reversible ~directives:directives rule in 
   let sigma,rule =
     if explicit
     then 
