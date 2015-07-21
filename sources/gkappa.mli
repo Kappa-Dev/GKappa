@@ -4,7 +4,7 @@
  * Jérôme Feret, projet Antique, INRIA Paris-Rocquencourt
  * 
  * Creation: March, the 28th of 2015
- * Last modification: Time-stamp: <2015-07-11 13:58:46 feret>
+ * Last modification: Time-stamp: <2015-07-15 09:15:43 feret>
  * * 
  *  
  * Copyright 2015 Institut National de Recherche en Informatique  * et en Automatique.  All rights reserved.  
@@ -210,7 +210,7 @@ val disjoint_union: remanent_state -> remanent_state -> lift * lift * remanent_s
 val disjoint_union_with_match: remanent_state -> remanent_state -> lift * lift * remanent_state 
 
 val add_match: ?color:string -> ?style:string -> (agent*agent) list -> remanent_state -> remanent_state 
-val add_proj: ?color:string -> ?style:string -> ?ca:(string option) -> ?cb:(string option) -> ?donotfuse:(bool) ->  (agent*agent) list -> remanent_state -> remanent_state 
+val add_proj: ?color:string -> ?style:string -> ?name:(string option list option)-> ?ca:(string option) -> ?cb:(string option) -> ?donotfuse:(bool) ->  (agent*agent) list -> remanent_state -> remanent_state 
 val add_emb: ?color:string -> ?style:string -> ?ca:(string option) -> ?cb:(string option) -> ?donotfuse:(bool) -> (agent*agent) list -> remanent_state -> remanent_state
 
 val tag_all_nodes: tag -> int -> remanent_state -> remanent_state 
@@ -222,7 +222,7 @@ val move_remanent_bellow: float -> remanent_state -> remanent_state -> remanent_
 val add_rule: float -> float -> ?reversible:bool -> ?directives:directive list -> remanent_state -> remanent_state
 val corners: remanent_state -> (float * float * float * float) option 
 val cross: remanent_state -> remanent_state 
-			       
+val put_a_cross: float -> float -> float -> float -> remanent_state -> remanent_state 			       
 
 type valuation = graph_vars * (site * state list) list * state list 
 val build_rule: ?file:string -> ?hgap:(float option) -> ?vgap:(float option) -> ?explicit:bool ->  ?reversible:bool -> ?directives:directive list -> remanent_state -> (remanent_state -> valuation * remanent_state) -> (remanent_state -> valuation * remanent_state) ->  lift * lift * valuation * remanent_state
@@ -233,5 +233,8 @@ val proj_flow_on_a_species: ?file:string -> ?padding:float -> ?angle:angle -> ?f
 val proj_flow_on_a_contact_map: ?file:string -> ?padding:float -> ?angle:angle -> ?flow:(site * site) list -> remanent_state -> remanent_state -> lift * lift * remanent_state * remanent_state 
 
 val insert_text_here: string -> float -> float -> ?directives:directive list -> remanent_state -> remanent_state
-val insert_text_on_boarder: (string * angle) list  -> ?inside:in_out -> ?directives:directive list -> remanent_state -> remanent_state 
+val insert_text_on_boarder: (string * angle) list  -> ?padding:float -> ?inside:in_out -> ?directives:directive list -> remanent_state -> remanent_state 
 val color:string -> ?flags:((tag*int) list) -> remanent_state -> remanent_state 
+
+val add_empty_graph: float -> float -> remanent_state -> agent * remanent_state 
+val add_empty_node: float -> float -> remanent_state -> agent * remanent_state 
