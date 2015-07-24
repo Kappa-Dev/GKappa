@@ -42,7 +42,7 @@ let config =
     free_width = 0.15 ; 
     free_height = 0.1 ;
     bound_height = 0.3 ;
-    rule_length = 1.5 ;
+    rule_length = 1. ;
     rule_width = 1;
     cross_width = 5 ; 
     edge_label_font = 50 ;
@@ -64,7 +64,7 @@ let config =
     txt_font = 25 ; 
     rule_name_font = 20;
     dummy_font = 20;
-    rule_margin = 0.1; 
+    rule_margin = 0.6; 
     flow_padding = 0.05;
     projection_width = 2;
     rule_color = "black";
@@ -77,7 +77,7 @@ let config =
     losange = ("dotted","black"),("dashed",("blue","blue4")),("solid",("blue","blue4")),("solid",("red","red4")),("dashed",("red","red4")),("dotted","black");
     losange_corners = empty_co ;
     losange_padding = 0.5;
-    rule = ("solid","blue"),("solid","blue4") ; 
+    rule = ("dashed","blue"),("dashed","blue4") ; 
     rule_corners = empty_ru ; 
  }
 

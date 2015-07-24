@@ -1839,7 +1839,7 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
        Some (xm,xM,_,_), Some(_,_,ym,yM) -> xm,xM,ym,yM 
      | None,_ | _,None -> 0.,0.,0.,0.
   in 
-  let distance = (1.+.rule_margin*.2.)*. node.width *. node.scale_factor  in
+  let distance = (rule_width +.rule_margin*.2.) *. node.scale_factor  in
   let rulex,ruley,deltax,deltay,distancex,distancey = compute_padding cornerlhs cornerrhs angle distance in 
   let sigmal,sigmar,rule = disjoint_union lhs (translate_graph {abscisse=deltax;ordinate=deltay} rhs) in 
   let rule = add_rule rulex ruley ~reversible:reversible ~directives:directives rule in 
