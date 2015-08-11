@@ -202,6 +202,7 @@ val lift_state: lift -> state -> state
 val dump: string -> ?flags:(tag*int) list -> remanent_state -> unit
 val rotate: float ->float-> float->remanent_state ->remanent_state
 val translate_graph: point -> remanent_state -> remanent_state
+val translate_agent: point -> agent -> remanent_state -> remanent_state 
 val sym: float -> float ->remanent_state -> remanent_state
 val fuse: remanent_state -> remanent_state -> remanent_state
 val horizontal_swap: remanent_state -> remanent_state 

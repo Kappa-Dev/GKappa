@@ -1394,6 +1394,24 @@ let translate_graph vector remanent =
 	coordinate = translate node.coordinate vector ;
       })
     remanent 
+
+let rec translate_node vector id remanent =
+  let node = IdMap.find_option id remanent.items in
+  match node
+  with
+  | None -> let _ = Printf.fprintf stderr "Warning: In translate_node, unknown node.\n" in remanent
+  | Some node ->
+     IdMap.fold
+       (fun _ -> IdSet.fold 
+	  (translate_node vector))
+       node.sibblings
+       {
+	 remanent
+       with
+	 items = IdMap.add id {node with coordinate = translate node.coordinate vector} remanent.items}
+
+let translate_agent vector ag =
+  translate_node vector ag  
     
 let sym_h y remanent = remanent 
 let sym_v x remanent = remanent 
