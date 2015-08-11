@@ -1791,19 +1791,18 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
   let node = parse_attributes (fun _ -> true) "" directives node in 
   let (rule_width:float),(rule_margin:float) = 
     let v = 
-      match vgap 
+      match hgap 
       with 
       | None -> 1. 
       | Some v -> v
     in 
-(*    let scale = node.scale_factor in *)
     let a,b = node.width(**.scale*),domain.config.rule_margin in 
     a*.v/.(a+.b),
     b*.v/.(a+.b)
   in
   let node = {node with width = rule_width} in 
   let alpha = 
-    match hgap 
+    match vgap 
     with None -> 0.75
     | Some (a:float) -> 
       a/.(rule_width+.2.*.rule_margin)
