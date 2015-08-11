@@ -1783,8 +1783,8 @@ let move graph cx cy =
 	    ) g
  
 
-
-let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(explicit=false) ?reversible:(reversible=false) ?directives:(directives=[])   domain extend_lhs extend_rhs  =
+let neutral_extension x = ([],[],[]),x
+let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(explicit=false) ?(rule_symb=true) ?reversible:(reversible=false) ?directives:(directives=[]) domain ?extend_domain:(extend_domain=neutral_extension)  extend_lhs extend_rhs  =
   let (stylel,colorl),(styler,colorr) = domain.config.rule in 
   let c = domain.config.rule_corners in 
   let node = {dummy_item with orientation = e ; width = float_of_int (domain.config.rule_width)} in 
@@ -1811,6 +1811,7 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
   let angle = sample_angle node.orientation in 
   let (l1,l2,l3),lhs = extend_lhs domain in 
   let (r1,r2,r3),rhs = extend_rhs domain in 
+  let (d1,d2,d3),domain = extend_domain domain in 
   let extra_domain,domain = fill_empty domain in 
   let extra_lhs,lhs = fill_empty lhs in 
   let extra_rhs,rhs = fill_empty rhs in 
@@ -1823,9 +1824,10 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
   in 
   let l1 = correct extra_lhs l1 in 
   let r1 = correct extra_rhs r1 in 
+  let d1 = correct extra_domain d1 in 
   let lhs = tag_all_nodes "lhs" 1 lhs in 
   let rhs = tag_all_nodes "rhs" 1 rhs in 
-   let cornerlhs = 
+  let cornerlhs = 
     match 
       corners lhs,corners_p p_agent rhs 
     with 
@@ -1842,7 +1844,7 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
   let distance = (rule_width +.rule_margin*.2.) *. node.scale_factor  in
   let rulex,ruley,deltax,deltay,distancex,distancey = compute_padding cornerlhs cornerrhs angle distance in 
   let sigmal,sigmar,rule = disjoint_union lhs (translate_graph {abscisse=deltax;ordinate=deltay} rhs) in 
-  let rule = add_rule rulex ruley ~reversible:reversible ~directives:directives rule in 
+  let rule = if rule_symb then add_rule rulex ruley ~reversible:reversible ~directives:directives rule else rule in 
   let sigma,rule =
     if explicit
     then 
@@ -1872,9 +1874,9 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
   in 
   sigmal,
   sigmar,
-  (List.concat [lift_agent_list sigmal l1;lift_agent_list sigmar r1],
-   List.concat [lift_site_list sigmal l2;lift_site_list sigmar r2],
-   List.concat [lift_state_list sigmal l3;lift_state_list sigmar r3]),
+  (List.concat [d1;lift_agent_list sigmal l1;lift_agent_list sigmar r1],
+   List.concat [d2;lift_site_list sigmal l2;lift_site_list sigmar r2],
+   List.concat [d3;lift_state_list sigmal l3;lift_state_list sigmar r3]),
   rule
     
 
