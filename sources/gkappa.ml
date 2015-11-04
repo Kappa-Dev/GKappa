@@ -1011,7 +1011,7 @@ let add_binding_type site_id site_type ?directives:(attributes=[]) remanent =
        let p = node.coordinate in 
        let p' =
 	 if d <= 90. || d>=270. then
-	   {p with ordinate = p.ordinate +. 0.22-. (dummy_txt_item remanent.config).height/.2.}
+	   {p with ordinate = p.ordinate +. 0.023*.(float_of_int remanent.config.binding_type_font)-.(dummy_txt_item remanent.config).height/.2.}
 	 else
 	   {p with ordinate = p.ordinate -. 0.023*.(float_of_int remanent.config.binding_type_font)+.(dummy_txt_item remanent.config).height/.2.}
        in
