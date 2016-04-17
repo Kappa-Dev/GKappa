@@ -1655,7 +1655,7 @@ let p_agent ag =
   | _ -> false
 
 let add_rule x y ?reversible:(reversible=false) ?directives:(directives=[]) remanent = 
-  let item = {dummy_item with coordinate = {abscisse = x ; ordinate = y} ; width = float_of_int (remanent.config.rule_width) ; height = remanent.config.rule_length ; orientation = e ; fontsize = remanent.config.rule_name_font} in 
+  let item = {dummy_item with coordinate = {abscisse = x ; ordinate = y} ; width = remanent.config.rule_length ; height = remanent.config.rule_length ; orientation = e ; fontsize = remanent.config.rule_name_font} in 
   let item = parse_attributes (fun _ -> true) "" directives item  in  
   let size = item.width*.item.scale_factor in 
   let angle' = item.orientation in 
@@ -1805,7 +1805,7 @@ let neutral_extension x = ([],[],[]),x
 let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(explicit=false) ?(rule_symb=true) ?reversible:(reversible=false) ?directives:(directives=[]) domain ?extend_domain:(extend_domain=neutral_extension)  extend_lhs extend_rhs  =
   let (stylel,colorl),(styler,colorr) = domain.config.rule in 
   let c = domain.config.rule_corners in 
-  let node = {dummy_item with orientation = e ; width = float_of_int (domain.config.rule_width)} in 
+  let node = {dummy_item with orientation = e ; width =  domain.config.rule_length} in 
   let node = parse_attributes (fun _ -> true) "" directives node in 
   let (rule_width:float),(rule_margin:float) = 
     let v = 
@@ -1857,7 +1857,7 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
      with 
        Some (xm,xM,_,_), Some(_,_,ym,yM) -> xm,xM,ym,yM 
      | None,_ | _,None -> 0.,0.,0.,0.
-  in 
+  in
   let distance = (rule_width +.rule_margin*.2.) *. node.scale_factor  in
   let rulex,ruley,deltax,deltay,distancex,distancey = compute_padding cornerlhs cornerrhs angle distance in 
   let sigmal,sigmar,rule = disjoint_union lhs (translate_graph {abscisse=deltax;ordinate=deltay} rhs) in 
