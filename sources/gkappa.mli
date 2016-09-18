@@ -118,27 +118,28 @@ type co_mode = Empty | Middle | Corners
 
 type tag = string
 type directive =
-| Fontsize of int
-| Tag of tag * int
-| Radius of float
-| Width of float
-| Height of float
-| Direction of angle
-| Shape of string
-| Set_scale of float
-| Scale of float
-| Color of string
-| FillColor of string
-| Comment of string
+  | Fontsize of int
+  | FontColor of string
+  | Tag of tag * int
+  | Radius of float
+  | Width of float
+  | Height of float
+  | Direction of angle
+  | Shape of string
+  | Set_scale of float
+  | Scale of float
+  | Color of string
+  | FillColor of string
+  | Comment of string
 
 type id
 type agent_type
 type site_type
 type internal_state_type
 type state_type =
-| Free_site of directive list
-| Bound_site of directive list
-| Internal_state of internal_state_type * directive list
+  | Free_site of directive list
+  | Bound_site of directive list
+  | Internal_state of internal_state_type * directive list
 
 type agent
 type site
@@ -147,13 +148,13 @@ type remanent_state
 type signature_vars = (agent_type * (site_type * internal_state_type list) list) list
 type graph_vars = (agent * (site * state list ) list) list
 type signature =
-      (string * directive list *
-	 (string * directive list *
-	    ((string * directive list) list)) list) list
+  (string * directive list *
+   (string * directive list *
+    ((string * directive list) list)) list) list
 type graph =
   (agent_type *float*float*directive list*
-     (site_type * directive list*
-	state_type list) list) list
+   (site_type * directive list*
+    state_type list) list) list
 type lift
 
 val init: config -> agent_type * remanent_state

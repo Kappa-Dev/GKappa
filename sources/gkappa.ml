@@ -56,39 +56,39 @@ let escaped s i =
   let rec aux i k l =
     if i=n then l
     else
-      if s.[i]='\\'
-      then
-	if k then aux (i+1) false (i::l)
-	else aux (i+1) true l
-      else
-	aux (i+1) false l
+    if s.[i]='\\'
+    then
+      if k then aux (i+1) false (i::l)
+      else aux (i+1) true l
+    else
+      aux (i+1) false l
   in
   let list = List.rev (aux 0 false []) in
   let rec aux k list list2 =
     match list with
     | t::q ->
-	aux (t+1) q ((String.sub s k (t-k))::list2)
+      aux (t+1) q ((String.sub s k (t-k))::list2)
     | [] -> List.rev ((String.sub s k (n-k))::list2)
   in
   let s = String.concat "" (aux 0 list []) in
   match i with None -> s
-  | Some i -> if n = 0 then s
-  else if String.sub s 0 1 = "$"
-  then
-    let n = String.length s in
-    let s = String.sub s 1 (n-2) in
-    "$\\fontsize{"^(string_of_int i)^"}{"^(string_of_int (int_of_float(floor  (float_of_int i*.1.2))))^"}\\selectfont \\ladottext{"^s^"}$"
-	      else s
+             | Some i -> if n = 0 then s
+               else if String.sub s 0 1 = "$"
+               then
+                 let n = String.length s in
+                 let s = String.sub s 1 (n-2) in
+                 "$\\fontsize{"^(string_of_int i)^"}{"^(string_of_int (int_of_float(floor  (float_of_int i*.1.2))))^"}\\selectfont \\ladottext{"^s^"}$"
+               else s
 
 let escape_short a b =
   let sizea,sizeb = String.length a,String.length b in
   if sizea =0 || sizeb = 0
   then a,b
   else
-    if String.sub a (sizea-1) 1 = "$" && String.sub b 0 1 = "$"
-    then
-      String.sub a 0 (sizea-1),String.sub b 1 (sizeb-1)
-    else
+  if String.sub a (sizea-1) 1 = "$" && String.sub b 0 1 = "$"
+  then
+    String.sub a 0 (sizea-1),String.sub b 1 (sizeb-1)
+  else
     a,b
 
 let escape_color a c =
@@ -105,22 +105,23 @@ let escape_color a c =
   else a
 
 (*%module GKappa =
-%  struct
+  %  struct
 *)
 type tag = string
 type directive =
-| Fontsize of int
-| Tag of tag * int
-| Radius of float
-| Width of float
-| Height of float
-| Direction of angle
-| Shape of string
-| Set_scale of float
-| Scale of float
-| Color of string
-| FillColor of string
-| Comment of string
+  | Fontsize of int
+  | FontColor of string
+  | Tag of tag * int
+  | Radius of float
+  | Width of float
+  | Height of float
+  | Direction of angle
+  | Shape of string
+  | Set_scale of float
+  | Scale of float
+  | Color of string
+  | FillColor of string
+  | Comment of string
 type id = int
 type agent_type = id
 type site_type = id
@@ -129,21 +130,21 @@ type agent = id
 type site = id
 type state = id
 type state_type =
-| Free_site of directive list
-| Bound_site of directive list
-| Internal_state of internal_state_type * directive list
+  | Free_site of directive list
+  | Bound_site of directive list
+  | Internal_state of internal_state_type * directive list
 
 type signature_vars = (agent_type * (site_type * internal_state_type list) list) list
 type signature =
   (string * directive list *
-     (string * directive list *
-	((string * directive list) list)) list) list
+   (string * directive list *
+    ((string * directive list) list)) list) list
 
 type graph_vars = (agent * (site * state list ) list ) list
 type graph =
   (agent_type *float*float*directive list*
-     (site_type * directive list*
-	state_type list) list) list
+   (site_type * directive list*
+    state_type list) list) list
 
 type valuation = graph_vars * (site * state list) list * state list
 
@@ -221,7 +222,7 @@ type config =
     losange_padding: float;
     rule: (string*string)*(string*string);
     rule_corners:ru_corner;
- }
+  }
 
 
 type co_mode = Empty | Middle | Corners
@@ -376,6 +377,7 @@ type 'a item =
     fontsize: int ;
     shape: string ;
     fillcolor:string ;
+    fontcolor:string ;
     color:string;
     coordinate: point;
     orientation: angle;
@@ -411,6 +413,7 @@ let dummy_item =
     height = 0.;
     fontsize = 0;
     fillcolor = "white";
+    fontcolor = "black" ;
     color = "black";
     coordinate = origin;
     shape = "ellipse";
@@ -433,61 +436,61 @@ let dummy_agent_type config =
 let dummy_site_name config =
   {
     dummy_item with
-      kind = Site_type ;
-      style = "filled";
-      width = config.site_width ;
-      height = config.site_height ;
-      fontsize = config.site_label_font;
-      scale_factor = 1.05
+    kind = Site_type ;
+    style = "filled";
+    width = config.site_width ;
+    height = config.site_height ;
+    fontsize = config.site_label_font;
+    scale_factor = 1.05
   }
 
 let dummy_state_kind config =
   {
     dummy_item with
-      kind = State_type ;
-      style = "filled";
-      width = config.state_width ;
-      height = config.state_height ;
-      fontsize = config.state_label_font ;
+    kind = State_type ;
+    style = "filled";
+    width = config.state_width ;
+    height = config.state_height ;
+    fontsize = config.state_label_font ;
   }
 
 let link config =
   {
     dummy_item
-   with kind = Link ;
-     width = (float_of_int config.link_width)
+    with kind = Link ;
+         width = (float_of_int config.link_width)
   }
 let pairing config =
   {
     (link config)
-   with style = config.pairing_style ;
-     color = config.pairing_color ;
-     width = (float_of_int config.pairing_width)}
+    with style = config.pairing_style ;
+         color = config.pairing_color ;
+         width = (float_of_int config.pairing_width)}
 let projection ?name:(name=None) ?ca:(ca=None) ?cb:(cb=None) ?(donotfuse=false) config =
   {
     (pairing config)
-  with
-    forward = true ;
-    comment =
-      begin
-	match
-	  name
-	with
-	| None -> ""
-	| Some x -> x
-      end;
-    corner1 = ca ;
-    corner2 = cb ;
-    canbefused = not donotfuse ;
-    style = config.projection_style ;
-    color = config.projection_color ;
-    width = (float_of_int config.projection_width)}
+    with
+      forward = true ;
+      comment =
+        begin
+          match
+            name
+          with
+          | None -> ""
+          | Some x -> x
+        end;
+      corner1 = ca ;
+      corner2 = cb ;
+      canbefused = not donotfuse ;
+      style = config.projection_style ;
+      color = config.projection_color ;
+      width = (float_of_int config.projection_width)}
 let rule config =
   { (link config)
     with forward = true ;
-      kind = Rule ;
-      width = (float_of_int config.rule_width) ;
-      color = config.rule_color ; style = config.rule_style }
+         kind = Rule ;
+         width = (float_of_int config.rule_width) ;
+         color = config.rule_color ; style = config.rule_style }
 let weak_flow config =
   { (link config)
     with
@@ -510,10 +513,10 @@ let flow config =
 let strong_flow config =
   { (flow config)
     with
-    color = config.strong_flow_color;
-    style = config.strong_flow_style ;
-    width = (float_of_int config.strong_flow_width);
-    tags = TagMap.add "flow" (IntSet.add 2 IntSet.empty) TagMap.empty}
+      color = config.strong_flow_color;
+      style = config.strong_flow_style ;
+      width = (float_of_int config.strong_flow_width);
+      tags = TagMap.add "flow" (IntSet.add 2 IntSet.empty) TagMap.empty}
 
 
 let dummy_agent = dummy_agent_type
@@ -541,44 +544,44 @@ let is_empty g = IdMap.is_empty g.agents
 let dummy_txt_item config =
   {
     dummy_item with
-      width = float_of_int (config.txt_font)/.50.;
-      height = float_of_int (config.txt_font)/.50.;
-      fontsize = config.txt_font;
-      priority = 1;
-      style = "";
-      comment = "";
-      kind = Dummy_node ;
-      father = None ;
-      sibblings = IdMap.empty ;
-      label = "" ;
-      tags = TagMap.empty;
-      n_sibblings=0;
-      shape = "plaintext";
-      scale_factor=1.;
-      orientation=n}
+    width = float_of_int (config.txt_font)/.50.;
+    height = float_of_int (config.txt_font)/.50.;
+    fontsize = config.txt_font;
+    priority = 1;
+    style = "";
+    comment = "";
+    kind = Dummy_node ;
+    father = None ;
+    sibblings = IdMap.empty ;
+    label = "" ;
+    tags = TagMap.empty;
+    n_sibblings=0;
+    shape = "plaintext";
+    scale_factor=1.;
+    orientation=n}
 
 let dummy_agent_item =
   {
     dummy_item with
-      width = 2.;
-      height = 1.;
-      fontsize = 30;
+    width = 2.;
+    height = 1.;
+    fontsize = 30;
   }
 
 let dummy_site_item =
   {
     dummy_item with
-      width = 2.;
-      height = 1.;
-      fontsize = 14;
+    width = 2.;
+    height = 1.;
+    fontsize = 14;
   }
 
 let dummy_state_item =
   {
     dummy_item with
-      width = 0.4;
-      height = 0.4;
-      fontsize = 10;
+    width = 0.4;
+    height = 0.4;
+    fontsize = 10;
   }
 
 let init config =
@@ -594,30 +597,30 @@ let init config =
   }
 
 let add_tag s i map =
-      let old =
-	match
-	  TagMap.find_option s map
-	with
-	| None -> IntSet.empty
-	| Some a -> a
-      in
-      TagMap.add s (IntSet.add i old) map
+  let old =
+    match
+      TagMap.find_option s map
+    with
+    | None -> IntSet.empty
+    | Some a -> a
+  in
+  TagMap.add s (IntSet.add i old) map
 
 let print_warn_attribute log t s =
   Printf.fprintf stderr "Warning: %s directive is useless in %s declaration\n"
     (
       match t with
-	  | Comment _ -> "Comment"
-	  | FillColor _ -> "Fill_color"
-	  | Color _ -> "Color"
-	  | Fontsize _ -> "Fontsize"
-	  | Tag _ -> "Tag"
-	  | Width _ -> "Width"
-	  | Height _ -> "Height"
-	  | Direction _ -> "Direction"
-	  | Shape _ -> "Shape"
-	  | Radius _ -> "Radius"
-	  | Scale _ | Set_scale _ -> "Scale")
+      | Comment _ -> "Comment"
+      | FillColor _ -> "Fill_color"
+      | Color _ -> "Color"
+      | Fontsize _ -> "Fontsize"
+      | Tag _ -> "Tag"
+      | Width _ -> "Width"
+      | Height _ -> "Height"
+      | Direction _ -> "Direction"
+      | Shape _ -> "Shape"
+      | Radius _ -> "Radius"
+      | Scale _ | Set_scale _ -> "Scale")
     s
 
 let rec parse_attributes p s att item =
@@ -629,24 +632,25 @@ let rec parse_attributes p s att item =
     let item  =
       if not (p t)
       then
-	let _ = print_warn_attribute stderr t s in
-	item
+        let _ = print_warn_attribute stderr t s in
+        item
       else
-	begin
-	  match t with
-	  | Comment s -> {item with comment = escaped s None }
-	  | FillColor s -> {item with fillcolor = s}
-	  | Color s -> {item with color = s}
-	  | Fontsize i -> {item with fontsize = i}
-	  | Tag (s,i) -> {item with tags = add_tag s i item.tags}
-	  | Width f -> {item with width = f}
-	  | Height f -> {item with height = f}
-	  | Direction f -> {item with orientation = f}
-	  | Shape s -> {item with shape = s}
-	  | Radius f -> parse_attributes p s [Width f;Height f] item
-	  | Scale f -> {item with scale_factor = f *. item.scale_factor}
-	  | Set_scale f -> {item with scale_factor = f}
-    end
+        begin
+          match t with
+          | Comment s -> {item with comment = escaped s None }
+          | FillColor s -> {item with fillcolor = s}
+          | Color s -> {item with color = s}
+          | Fontsize i -> {item with fontsize = i}
+          | FontColor s -> {item with fontcolor = s}
+          | Tag (s,i) -> {item with tags = add_tag s i item.tags}
+          | Width f -> {item with width = f}
+          | Height f -> {item with height = f}
+          | Direction f -> {item with orientation = f}
+          | Shape s -> {item with shape = s}
+          | Radius f -> parse_attributes p s [Width f;Height f] item
+          | Scale f -> {item with scale_factor = f *. item.scale_factor}
+          | Set_scale f -> {item with scale_factor = f}
+        end
     in parse_attributes p s q item
 
 let add_sig f item remanent =
@@ -654,15 +658,15 @@ let add_sig f item remanent =
   let item = f id item in
   id,{
     remanent
-   with
-     sig_items  = IdMap.add id item remanent.sig_items ;
-     nsig_items = id
+    with
+      sig_items  = IdMap.add id item remanent.sig_items ;
+      nsig_items = id
   }
 
 let p_txt x =
   match x with
   | Comment _ | Tag _ | Direction _  | Set_scale _ | Scale _ | Radius _ -> false
-  | Shape _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
+  | Shape _ | FontColor _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
 
 let p_agent_type x =
   match x with
@@ -744,7 +748,7 @@ let add_son_type father error1 error2 error3 name dummy ?directives:(attributes=
     let s_id,remanent = add_sig (fun _ x -> x) sibbling_item remanent in
     let father_item =
       { father_item with sibblings =
-	  add_sibbling s_id s_id father_item.sibblings}
+                           add_sibbling s_id s_id father_item.sibblings}
     in
     s_id,{remanent with sig_items = IdMap.add father father_item remanent.sig_items}
 
@@ -760,37 +764,37 @@ let name_of_node id remanent =
     with
     | None ->
       let _ = Printf.fprintf stderr "ERROR: dandling pointer in the data-structures\n"
-	  in list
+      in list
     | Some item ->
       begin
-	match item.father
-	with
-	| None -> (id,item.label)::list
-	| Some id' -> aux id' ((id,item.label)::list)
+        match item.father
+        with
+        | None -> (id,item.label)::list
+        | Some id' -> aux id' ((id,item.label)::list)
       end
   in
   let list = aux id [] in
   let prefix,list  =
     match
-	IdMap.find_option id remanent.items
+      IdMap.find_option id remanent.items
     with
     | None ->
       let _ = Printf.fprintf stderr "ERROR: dandling pointer in the data-structures\n" in "",list
     | Some x -> (string_of_node_kind x.kind),list
   in
-    List.fold_left
-      (fun s (i,l) -> s^"_"^(string_of_int i))
-      prefix list
+  List.fold_left
+    (fun s (i,l) -> s^"_"^(string_of_int i))
+    prefix list
 
 let add_node f item remanent =
   let id = succ remanent.nitems in
   let item = f id item in
-   id,
+  id,
   {
     remanent
-   with
-     items  = IdMap.add id item remanent.items ;
-     nitems = id
+    with
+      items  = IdMap.add id item remanent.items ;
+      nitems = id
   }
 
 let add_agent agent_type abs ord ?directives:(attributes=[]) remanent =
@@ -805,27 +809,27 @@ let add_agent agent_type abs ord ?directives:(attributes=[]) remanent =
     let item = {item with kind = Agent agent_type ; coordinate = {abscisse = abs ; ordinate = ord }; sibblings = IdMap.empty } in
     let id,remanent = add_node f item remanent in
     id,{remanent
-	with
-	  agents =
-	IdMap.add agent_type (match IdMap.find_option agent_type remanent.agents
-	  with None -> IdSet.singleton id
-	  | Some l -> IdSet.add id l) remanent.agents}
+        with
+         agents =
+           IdMap.add agent_type (match IdMap.find_option agent_type remanent.agents
+                                 with None -> IdSet.singleton id
+                                    | Some l -> IdSet.add id l) remanent.agents}
 
 let add_empty_graph abs ord remanent =
   let item = {(dummy_txt_item remanent.config)
-	     with
-	       kind = Empty_agent ;
-	       coordinate = {abscisse = abs ; ordinate=ord} ;
-	       label = escaped remanent.config.empty_graph (Some remanent.config.dummy_font) ;
-	       fontsize = remanent.config.dummy_font } in
+              with
+               kind = Empty_agent ;
+               coordinate = {abscisse = abs ; ordinate=ord} ;
+               label = escaped remanent.config.empty_graph (Some remanent.config.dummy_font) ;
+               fontsize = remanent.config.dummy_font } in
   add_node (fun _ x -> x) item remanent
 
 let add_empty_node abs ord remanent =
   let item = {(dummy_txt_item remanent.config)
-	     with
-	       coordinate = {abscisse = abs ; ordinate=ord} ;
-	       label = "" ;
-	       fontsize = remanent.config.dummy_font } in
+              with
+               coordinate = {abscisse = abs ; ordinate=ord} ;
+               label = "" ;
+               fontsize = remanent.config.dummy_font } in
   add_node (fun _ x -> x) item remanent
 
 let add_son father son_type kind error1 error2 error3 attributes p remanent =
@@ -843,15 +847,15 @@ let add_son father son_type kind error1 error2 error3 attributes p remanent =
     let item = parse_attributes p error3 attributes {item with tags = father_item.tags ; orientation = match kind with State _ -> father_item.orientation | _ -> item.orientation  } in
     let site_center =
       (match father_item.shape
-      with
-      | "hexagone" -> point_on_hexagone
-      | "rectangle" | "square" -> point_on_rectangle
-      | _ -> point_on_ellipse)
-	father_item.coordinate
-	(father_item.width *. father_item.scale_factor)
-	(father_item.height *. father_item.scale_factor)
-	item.orientation
-	item.scale_factor
+       with
+       | "hexagone" -> point_on_hexagone
+       | "rectangle" | "square" -> point_on_rectangle
+       | _ -> point_on_ellipse)
+        father_item.coordinate
+        (father_item.width *. father_item.scale_factor)
+        (father_item.height *. father_item.scale_factor)
+        item.orientation
+        item.scale_factor
     in
     let item = {item with father = Some father ; kind = kind ; label = item.label ; coordinate = site_center ; sibblings = IdMap.empty } in
     let s_id,remanent = add_node (fun _ x -> x) item remanent in
@@ -875,9 +879,9 @@ let equ_link s1 s2 edge =
 let dir_of_edge e =
   match e.backward,e.forward
   with false,false -> "none"
-  | false,true -> "forward"
-  | true,false -> "back"
-  | true,true -> "both"
+     | false,true -> "forward"
+     | true,false -> "back"
+     | true,true -> "both"
 
 let fusion_edge s1 s2 =
   {s2 with forward = s1.forward || s2.forward ; backward = s1.backward || s2.backward }
@@ -890,15 +894,15 @@ let rec add_link edge n1 n2 remanent =
   else
     {remanent
      with
-       edges =
-	let old =
-	  match
-	    Id2Map.find_option (n1,n2) remanent.edges
-	  with
-	  | None -> []
-	  | Some l -> l
-	in
-	Id2Map.add (n1,n2) (edge::old) remanent.edges}
+      edges =
+        let old =
+          match
+            Id2Map.find_option (n1,n2) remanent.edges
+          with
+          | None -> []
+          | Some l -> l
+        in
+        Id2Map.add (n1,n2) (edge::old) remanent.edges}
 
 
 let add_relation relation = add_link relation
@@ -943,8 +947,8 @@ let add_free site_id ?directives:(attributes=[]) remanent =
     let free_center3 = point_on_ellipse_ext free_center1 0. 0. (anticlockwise item.orientation 90.)  1. (item.width/.2.) in
     let node = {item with width = 0. ; height = 0. ; color = "white" ; style = "" } in
     let node_id1 = {node with coordinate = free_center1 ; kind = Free 1 ; sibblings = IdMap.empty } in
-     let id1,remanent = add_node (fun _ x -> x) node_id1  remanent in
-     let id2,remanent = add_node (fun _ x -> x) {node with coordinate = free_center2 ; kind = Free 2 ; father = Some id1 } remanent in
+    let id1,remanent = add_node (fun _ x -> x) node_id1  remanent in
+    let id2,remanent = add_node (fun _ x -> x) {node with coordinate = free_center2 ; kind = Free 2 ; father = Some id1 } remanent in
     let id3,remanent = add_node (fun _ x -> x) {node with coordinate = free_center3 ; kind = Free 3 ; father = Some id1 } remanent in
     let remanent = {remanent with items = IdMap.add id1 {node_id1 with sibblings = add_sibbling id2 (-1) (add_sibbling id3 (-1) IdMap.empty)} remanent.items} in
     let remanent = add_link {item with kind = Free_symbol 1} site_id id1 (add_link {item with kind = Free_symbol 2} id2 id3 remanent) in
@@ -971,11 +975,11 @@ let add_bound site_id ?directives:(attributes=[]) remanent =
 
 
 let insert_text_here s x y ?directives:(d=[]) remanent =
-   let item = parse_attributes p_txt "txt" d (dummy_txt_item remanent.config) in
-   let item =
+  let item = parse_attributes p_txt "txt" d (dummy_txt_item remanent.config) in
+  let item =
     {item
      with label = escaped s (Some item.fontsize) ;
-    coordinate = {abscisse = x ; ordinate = y}}
+          coordinate = {abscisse = x ; ordinate = y}}
   in
   let f _ x = x in
   let id,remanent = add_node f item remanent in
@@ -990,39 +994,39 @@ let add_binding_type site_id site_type ?directives:(attributes=[]) remanent =
     IdMap.find_option site_type remanent.sig_items
   with
   | Some node,Some s_type ->
-     begin
-       let ag_string =
-	 match s_type.father with
-	 | None -> let _ = Printf.fprintf stderr "ERROR: in add_binding_type, wrong site type.\n" in
-		   "*"
-	 | Some id ->
-	    begin
-	      match IdMap.find_option id remanent.sig_items
-	      with
-		None ->
-		let _ = Printf.fprintf stderr "ERROR: in add_binding_type, dandling pointers\n" in
-		"*"
-	      | Some node -> node.short_label
+    begin
+      let ag_string =
+        match s_type.father with
+        | None -> let _ = Printf.fprintf stderr "ERROR: in add_binding_type, wrong site type.\n" in
+          "*"
+        | Some id ->
+          begin
+            match IdMap.find_option id remanent.sig_items
+            with
+              None ->
+              let _ = Printf.fprintf stderr "ERROR: in add_binding_type, dandling pointers\n" in
+              "*"
+            | Some node -> node.short_label
 
-	    end
-       in
-       let s_string = s_type.short_label in
-       let d = to_degree node.orientation in
-       let p = node.coordinate in
-       let p' =
-	 if d <= 90. || d>=270. then
-	   {p with ordinate = p.ordinate +. 0.023*.(float_of_int remanent.config.binding_type_font)-.(dummy_txt_item remanent.config).height/.2.}
-	 else
-	   {p with ordinate = p.ordinate -. 0.023*.(float_of_int remanent.config.binding_type_font)+.(dummy_txt_item remanent.config).height/.2.}
-       in
-       let ag_string,s_string = escape_short ag_string s_string in
-       let txt = ag_string^"."^s_string in
-       let remanent = insert_text_here txt p'.abscisse p'.ordinate ~directives:[Fontsize remanent.config.binding_type_font] remanent in
-	   id,remanent
-     end
+          end
+      in
+      let s_string = s_type.short_label in
+      let d = to_degree node.orientation in
+      let p = node.coordinate in
+      let p' =
+        if d <= 90. || d>=270. then
+          {p with ordinate = p.ordinate +. 0.023*.(float_of_int remanent.config.binding_type_font)-.(dummy_txt_item remanent.config).height/.2.}
+        else
+          {p with ordinate = p.ordinate -. 0.023*.(float_of_int remanent.config.binding_type_font)+.(dummy_txt_item remanent.config).height/.2.}
+      in
+      let ag_string,s_string = escape_short ag_string s_string in
+      let txt = ag_string^"."^s_string in
+      let remanent = insert_text_here txt p'.abscisse p'.ordinate ~directives:[Fontsize remanent.config.binding_type_font] remanent in
+      id,remanent
+    end
   | _,_ ->
-	    let _ = Printf.fprintf stderr "ERROR: in add_binding_type, dandling pointers\n" in
-	    id,remanent
+    let _ = Printf.fprintf stderr "ERROR: in add_binding_type, dandling pointers\n" in
+    id,remanent
 
 let filter_label_in_agent remanent label =
   if remanent.config.show_agent_names then label else ""
@@ -1044,13 +1048,13 @@ let filter_tags list map =
       with
       | [] -> true
       | x::q ->
-	let s = s_of_x x in
-	match TagMap.find_option s map
-	with None -> deft && aux q
-	| Some set ->
-	  if p x set
-	  then aux q
-	  else false
+        let s = s_of_x x in
+        match TagMap.find_option s map
+        with None -> deft && aux q
+           | Some set ->
+             if p x set
+             then aux q
+             else false
     in aux l
   in
   def list true (fun (s,i) set -> IntSet.mem i set) fst
@@ -1061,7 +1065,7 @@ let dump_edge log (s1,s2) edge remanent =
 
 let dump_node log filter filter_label filter_color node remanent =
   Printf.fprintf log
-    "fixedsize=true,\nlabel = \"%s\",\nfontsize=%i,\npos=\"%f,%f!\",\nwidth=%f,\nheight=%f,\nshape=\"%s\",\nstyle=\"%s\",\nfillcolor=%s,\ncolor=%s\n" (filter_label node.label) node.fontsize node.coordinate.abscisse node.coordinate.ordinate (node.width*.node.scale_factor)  (node.height*.node.scale_factor)  node.shape node.style (filter_color node.fillcolor)  node.color
+    "fixedsize=true,\nlabel = \"%s\",\nfontsize=%i,\npos=\"%f,%f!\",\nwidth=%f,\nheight=%f,\nshape=\"%s\",\nstyle=\"%s\",\nfillcolor=%s,\ncolor=%s,\nfontcolor=%s" (filter_label node.label) node.fontsize node.coordinate.abscisse node.coordinate.ordinate (node.width*.node.scale_factor)  (node.height*.node.scale_factor)  node.shape node.style (filter_color node.fillcolor)  node.color node.fontcolor
 
 let dump_node chan filter remanent node_id node =
   let tags = node.tags in
@@ -1089,71 +1093,71 @@ let dump_edge_list chan filter remanent (n1,n2) l =
   | None,_ | _,None -> Printf.fprintf stderr "ERROR: in dump_edge_list, dandling pointers\n"
   | Some node1,Some node2 ->
     let l = List.filter
-      (fun edge ->
-	(filter_tags filter node1.tags &&
-		      filter_tags filter node2.tags &&
-		      filter_tags filter edge.tags )) l
+        (fun edge ->
+           (filter_tags filter node1.tags &&
+            filter_tags filter node2.tags &&
+            filter_tags filter edge.tags )) l
     in
     let n1 = name_of_node n1 remanent in
     let n2 = name_of_node n2 remanent in
     let n1,n2 =
       if node1 == node2
       then
-	let angle = node1.orientation.radius in
-	let suffix =
-	  if angle < pi/.4. then ":n"
-	  else if angle < 3.*.pi/.4. then ":e"
-	  else if angle < 5.*.pi/.4. then ":s"
-	  else if angle < 7.*.pi/.4. then ":w"
-	  else ":n"
-	in
-	n1^suffix,n2^suffix
+        let angle = node1.orientation.radius in
+        let suffix =
+          if angle < pi/.4. then ":n"
+          else if angle < 3.*.pi/.4. then ":e"
+          else if angle < 5.*.pi/.4. then ":s"
+          else if angle < 7.*.pi/.4. then ":w"
+          else ":n"
+        in
+        n1^suffix,n2^suffix
       else
-	n1,n2
+        n1,n2
     in
     let threshold  =
       List.fold_left
-	(fun threshold l ->
-	  max threshold l.priority
-	)
-	0 l
+        (fun threshold l ->
+           max threshold l.priority
+        )
+        0 l
     in
     let rec aux l accu accu2  =
       match
-      l
+        l
       with
-	edge::q ->
-	    if edge.priority < threshold
-	    then
-	      aux q accu accu2
-	    else
-	      begin
-		if edge.corner1 <> None || edge.corner2 <> None || not edge.canbefused
+        edge::q ->
+        if edge.priority < threshold
+        then
+          aux q accu accu2
+        else
+          begin
+            if edge.corner1 <> None || edge.corner2 <> None || not edge.canbefused
 
-		then
-		  aux q accu (edge::accu2)
-		else
-		  let accu  =
-		    match accu
-		    with None -> Some edge
-		       | Some accu ->
-			  Some (fusion_edge accu edge)
-		  in
-		  aux q accu accu2
-	      end
+            then
+              aux q accu (edge::accu2)
+            else
+              let accu  =
+                match accu
+                with None -> Some edge
+                   | Some accu ->
+                     Some (fusion_edge accu edge)
+              in
+              aux q accu accu2
+          end
       | [] -> accu,accu2
     in
     let a,b = aux l None [] in
     let _ =
       match a
       with
-	None -> ()
+        None -> ()
       | Some edge ->
-	 dump_edge
-	   chan
-	   ((n1:string),(n2:string))
-	   edge
-	   remanent
+        dump_edge
+          chan
+          ((n1:string),(n2:string))
+          edge
+          remanent
     in
     List.iter (fun edge -> dump_edge chan (n1,n2) edge remanent) b
 
@@ -1194,7 +1198,7 @@ let new_site_type agent_type site_type state_list ?directives:(d=[]) (site_list,
   let list,remanent =
     List.fold_left
       (fun (list,remanent) (state,d) ->
-	new_internal_state_type agent_type id state ~directives:d (list,remanent)) ([],remanent) state_list
+         new_internal_state_type agent_type id state ~directives:d (list,remanent)) ([],remanent) state_list
   in
   (id,List.rev list)::site_list,remanent
 
@@ -1203,7 +1207,7 @@ let new_agent_type agent_type site_list ?directives:(d=[]) (agent_list,remanent)
   let list,remanent =
     List.fold_left
       (fun (list,remanent) (site,d,state_list ) ->
-	new_site_type id site state_list ~directives:d (list,remanent))
+         new_site_type id site state_list ~directives:d (list,remanent))
       ([],remanent) site_list
   in
   (id,List.rev list)::agent_list,remanent
@@ -1212,7 +1216,7 @@ let add_in_signature (signature:signature) remanent =
   let list,remanent =
     List.fold_left
       (fun (list,remanent) (agent,d,site_list) ->
-	new_agent_type agent site_list ~directives:d (list,remanent))
+         new_agent_type agent site_list ~directives:d (list,remanent))
       ([],remanent)
       signature
   in List.rev list,remanent
@@ -1263,8 +1267,8 @@ let add_weak_flow_and_link_list = edge_list add_weak_flow_and_link
 let add_free_list l remanent =
   List.fold_left
     (fun (list,remanent) (site,directives) ->
-      let a,remanent = add_free site ~directives:directives remanent in
-      a::list,remanent)
+       let a,remanent = add_free site ~directives:directives remanent in
+       a::list,remanent)
     ([],remanent)
     l
 
@@ -1275,26 +1279,26 @@ let fold_node f = fold_id_and_nodes (fun _ y -> f y)
 
 let map_node f1 f2 remanent =
   {remanent with
-    items = IdMap.map f1  remanent.items ;
-    edges = Id2Map.map (fun x -> List.rev_map f2 (List.rev x)) remanent.edges
+   items = IdMap.map f1  remanent.items ;
+   edges = Id2Map.map (fun x -> List.rev_map f2 (List.rev x)) remanent.edges
   }
 
 let color s ?flags:(filter=[]) remanent =
   map_node
     (fun item ->
-        let tags = item.tags in
-	if filter_tags filter tags
-	then
-	  {item with color = s}
-	else
-	  item)
+       let tags = item.tags in
+       if filter_tags filter tags
+       then
+         {item with color = s}
+       else
+         item)
     (fun edge ->
-      let tags = edge.tags in
-      if filter_tags filter tags
-      then
-	{edge with color = s}
-      else
-	edge)
+       let tags = edge.tags in
+       if filter_tags filter tags
+       then
+         {edge with color = s}
+       else
+         edge)
     remanent
 
 let apply_opt f opt =
@@ -1309,15 +1313,15 @@ let apply_f_id_in_item f_id item =
     with
       father = apply_opt f_id item.father ;
       sibblings =
-      IdMap.map (fun x -> IdSet.fold (fun x -> IdSet.add (f_id x)) x IdSet.empty ) item.sibblings
+        IdMap.map (fun x -> IdSet.fold (fun x -> IdSet.add (f_id x)) x IdSet.empty ) item.sibblings
   }
 
 let map_id f_id remanent =
   let items,nitems =
     IdMap.fold
       (fun id item (map,nitems) ->
-	IdMap.add (f_id id) (apply_f_id_in_item f_id item) map,
- 	max (f_id id) nitems)
+         IdMap.add (f_id id) (apply_f_id_in_item f_id item) map,
+         max (f_id id) nitems)
       remanent.items
       (IdMap.empty,0)
   in
@@ -1325,20 +1329,20 @@ let map_id f_id remanent =
   let edges =
     Id2Map.fold
       (fun (id1,id2) edge map ->
-	let id1,id2 = f_id id1,f_id id2 in
-	let id1,id2,f =
-	  if compare id1 id2 < 0
-	  then
-	    id2,id1,op
-	  else
-	    id1,id2,(fun x->x)
-	in
-	Id2Map.add
-	  (id1,id2)
-	  (List.rev_map
-	     (fun item -> f (apply_f_id_in_item f_id item))
-	     (List.rev edge))
-	  map)
+         let id1,id2 = f_id id1,f_id id2 in
+         let id1,id2,f =
+           if compare id1 id2 < 0
+           then
+             id2,id1,op
+           else
+             id1,id2,(fun x->x)
+         in
+         Id2Map.add
+           (id1,id2)
+           (List.rev_map
+              (fun item -> f (apply_f_id_in_item f_id item))
+              (List.rev edge))
+           map)
       remanent.edges
       Id2Map.empty
   in
@@ -1346,10 +1350,10 @@ let map_id f_id remanent =
   in
   let remanent =
     {remanent with
-      agents = agents;
-      edges = edges ;
-      items = items ;
-      nitems = nitems }
+     agents = agents;
+     edges = edges ;
+     items = items ;
+     nitems = nitems }
   in
   f_id,f_id,f_id,remanent
 
@@ -1363,15 +1367,15 @@ let corners_p p remanent =
   in
   fold_node
     (fun node pos ->
-     if p node then
-       let x,y=node.coordinate.abscisse,node.coordinate.ordinate in
-       let coords =
-	 x-.node.width/.2.,x+.node.width/.2.,y-.node.height/.2.,y+.node.height/.2.
-       in
-       match pos
-       with None -> Some coords
-	  | Some old -> Some (fusion coords old)
-    else pos)
+       if p node then
+         let x,y=node.coordinate.abscisse,node.coordinate.ordinate in
+         let coords =
+           x-.node.width/.2.,x+.node.width/.2.,y-.node.height/.2.,y+.node.height/.2.
+         in
+         match pos
+         with None -> Some coords
+            | Some old -> Some (fusion coords old)
+       else pos)
     remanent
     None
 
@@ -1380,7 +1384,7 @@ let corners = corners_p (fun _ -> true)
 let size remanent =
   match corners remanent
   with None -> 0.,0.
-  | Some (x,y,z,t) -> y-.x,t-.z
+     | Some (x,y,z,t) -> y-.x,t-.z
 
 let pseudo_equal a b =
   abs ((a-.b)/.(abs (a) +. (abs b))) < 0.01
@@ -1389,11 +1393,11 @@ let rotate point angle remanent =
   let degree = to_degree angle in
   let () =
     if not
-      ((pseudo_equal degree 0.)
-       || (pseudo_equal degree 90.)
-       || (pseudo_equal degree 180.)
-       || (pseudo_equal degree 270.)
-       || (pseudo_equal degree 360.))
+        ((pseudo_equal degree 0.)
+         || (pseudo_equal degree 90.)
+         || (pseudo_equal degree 180.)
+         || (pseudo_equal degree 270.)
+         || (pseudo_equal degree 360.))
     then
       Printf.fprintf stderr "Warning: Rotation is only implemented for right, straight, and full angles\n"
   in
@@ -1416,11 +1420,11 @@ let rotate point angle remanent =
        let deltay = node.coordinate.ordinate -. point.ordinate in
        {node with
         coordinate =
-         {node.coordinate
-          with
-           abscisse = point.abscisse +. sin*.deltay +. cos*.deltax ;
-           ordinate = point.ordinate +. cos*.deltay +. sin*.deltax ;
-         };
+          {node.coordinate
+           with
+            abscisse = point.abscisse +. sin*.deltay +. cos*.deltax ;
+            ordinate = point.ordinate +. cos*.deltay +. sin*.deltax ;
+          };
         width = swap node.width node.height ;
         height = swap node.height node.width ;
         orientation = of_degree ((to_degree angle) +. (to_degree node.orientation))})
@@ -1429,10 +1433,10 @@ let rotate point angle remanent =
        let deltay = node.coordinate.ordinate -. point.ordinate in
        {node with
         coordinate =
-         {node.coordinate
-          with
-           abscisse = point.abscisse +. sin*.deltay +. cos*.deltax ;
-           ordinate = point.ordinate +. cos*.deltay +. sin*.deltax ;};
+          {node.coordinate
+           with
+            abscisse = point.abscisse +. sin*.deltay +. cos*.deltax ;
+            ordinate = point.ordinate +. cos*.deltay +. sin*.deltax ;};
         width = swap node.width node.height ;
         height = swap node.height node.width;
         orientation = of_degree ((to_degree angle) +. (to_degree node.orientation))})
@@ -1440,13 +1444,13 @@ let rotate point angle remanent =
 let translate_graph vector remanent =
   map_node
     (fun node ->
-      {node with
-	coordinate = translate node.coordinate vector ;
-      })
-     (fun node ->
-      {node with
-	coordinate = translate node.coordinate vector ;
-      })
+       {node with
+        coordinate = translate node.coordinate vector ;
+       })
+    (fun node ->
+       {node with
+        coordinate = translate node.coordinate vector ;
+       })
     remanent
 
 let rec translate_node vector id remanent =
@@ -1455,14 +1459,14 @@ let rec translate_node vector id remanent =
   with
   | None -> let _ = Printf.fprintf stderr "Warning: In translate_node, unknown node.\n" in remanent
   | Some node ->
-     IdMap.fold
-       (fun _ -> IdSet.fold
-	  (translate_node vector))
-       node.sibblings
-       {
-	 remanent
-       with
-	 items = IdMap.add id {node with coordinate = translate node.coordinate vector} remanent.items}
+    IdMap.fold
+      (fun _ -> IdSet.fold
+          (translate_node vector))
+      node.sibblings
+      {
+        remanent
+        with
+          items = IdMap.add id {node with coordinate = translate node.coordinate vector} remanent.items}
 
 let translate_agent vector ag =
   translate_node vector ag
@@ -1478,17 +1482,17 @@ let horizontal_swap remanent =
     let axe = (y_max +. y_min) /. 2. in
     map_node
       (fun node ->
-	{node with
-	  coordinate =
-	    {node.coordinate
-	     with ordinate = 2.*.axe -. node.coordinate.ordinate};
-	  orientation = of_degree (180. -. (to_degree node.orientation))})
-       (fun node ->
-	{node with
-	  coordinate =
-	    {node.coordinate
-	     with ordinate = 2.*.axe -. node.coordinate.ordinate};
-	  orientation = of_degree (180. -. (to_degree node.orientation))})
+         {node with
+          coordinate =
+            {node.coordinate
+             with ordinate = 2.*.axe -. node.coordinate.ordinate};
+          orientation = of_degree (180. -. (to_degree node.orientation))})
+      (fun node ->
+         {node with
+          coordinate =
+            {node.coordinate
+             with ordinate = 2.*.axe -. node.coordinate.ordinate};
+          orientation = of_degree (180. -. (to_degree node.orientation))})
       remanent
 let vertical_swap remanent =
   match corners remanent
@@ -1498,17 +1502,17 @@ let vertical_swap remanent =
     let axe = (x_max +. x_min) /. 2. in
     map_node
       (fun node ->
-	{node with
-	  coordinate =
-	    {node.coordinate
-	     with abscisse = 2.*.axe -. node.coordinate.abscisse};
-	  orientation = of_degree (360. -. (to_degree node.orientation))})
-        (fun node ->
-	{node with
-	  coordinate =
-	    {node.coordinate
-	     with abscisse = 2.*.axe -. node.coordinate.abscisse};
-	  orientation = of_degree (360. -. (to_degree node.orientation))})
+         {node with
+          coordinate =
+            {node.coordinate
+             with abscisse = 2.*.axe -. node.coordinate.abscisse};
+          orientation = of_degree (360. -. (to_degree node.orientation))})
+      (fun node ->
+         {node with
+          coordinate =
+            {node.coordinate
+             with abscisse = 2.*.axe -. node.coordinate.abscisse};
+          orientation = of_degree (360. -. (to_degree node.orientation))})
       remanent
 
 let fuse fold2map addmap f map1 map2 =
@@ -1520,9 +1524,9 @@ let fuse fold2map addmap f map1 map2 =
     map2
     map1
 
-    (* carefully review the following function and think, I think the precondistion is to restrictive *)
-    (* test with two graphs with distinct interfaces on a agent, *)
-    (* test with two graphs with distinct states on a site*)
+(* carefully review the following function and think, I think the precondistion is to restrictive *)
+(* test with two graphs with distinct interfaces on a agent, *)
+(* test with two graphs with distinct states on a site*)
 let fuse remanent remanent' =
   let _ =
     if not (remanent.config == remanent'.config)
@@ -1536,35 +1540,35 @@ let fuse remanent remanent' =
   let items =
     fuse IdMap.fold2 IdMap.add
       (fun x y z map ->
-	if y==z then map
-	else if assert_compatible_items y z
-	then IdMap.add x { y with sibblings =
-	    IdMap.fold2
-	      (fun x y z map ->
-		IdMap.add x (IdSet.union y z) map)
-	      (fun x y map -> map)
-	      (fun x y map -> IdMap.add x y map)
-	      y.sibblings
-	      z.sibblings
-	      y.sibblings
-			 }
-	  map
-	else
-	  (let _ = Printf.fprintf stderr "ERROR: In fuse, try to fuse maps with different images (items)\n" in map))
+         if y==z then map
+         else if assert_compatible_items y z
+         then IdMap.add x { y with sibblings =
+                                     IdMap.fold2
+                                       (fun x y z map ->
+                                          IdMap.add x (IdSet.union y z) map)
+                                       (fun x y map -> map)
+                                       (fun x y map -> IdMap.add x y map)
+                                       y.sibblings
+                                       z.sibblings
+                                       y.sibblings
+                          }
+             map
+         else
+           (let _ = Printf.fprintf stderr "ERROR: In fuse, try to fuse maps with different images (items)\n" in map))
 
       remanent.items remanent'.items
   in
   let agents  =
     fuse IdMap.fold2 IdMap.add
       (fun x y z map ->
-	if y==z then map
-	else IdMap.add x (IdSet.union y z) map)
+         if y==z then map
+         else IdMap.add x (IdSet.union y z) map)
       remanent.agents remanent'.agents
   in
   let edges =
     fuse Id2Map.fold2 Id2Map.add
       (fun x y z map -> if y==z then map
-	else let _ = Printf.fprintf stderr "ERROR: in fuse, incompatible edges\n" in map) remanent.edges remanent'.edges
+        else let _ = Printf.fprintf stderr "ERROR: in fuse, incompatible edges\n" in map) remanent.edges remanent'.edges
   in
   {
     remanent
@@ -1579,8 +1583,8 @@ let disjoint_union remanent remanent' =
   let delta = remanent.nitems in
   let (f,g,h,remanent') = add_to_id delta remanent' in
   ((fun x->x),
-  (fun y->y),
-  (fun z->z)),
+   (fun y->y),
+   (fun z->z)),
   (f,g,h),
   fuse remanent remanent'
 
@@ -1589,20 +1593,20 @@ let disjoint_union_list l =
   with
     [] -> None
   | t::q ->
-     let inj_list,g =
-       List.fold_left
-	 (fun (inj_list,g) g' ->
-	  let inj,inj',g'' = disjoint_union g g' in
-	  inj'::List.rev_map
-	    (compose_lift inj)
-	    (List.rev inj_list),
-	  g'')
-	 ([(fun x->x),(fun y->y),(fun z->z)],t)
-	 q
-     in Some (List.rev inj_list,g)
+    let inj_list,g =
+      List.fold_left
+        (fun (inj_list,g) g' ->
+           let inj,inj',g'' = disjoint_union g g' in
+           inj'::List.rev_map
+             (compose_lift inj)
+             (List.rev inj_list),
+           g'')
+        ([(fun x->x),(fun y->y),(fun z->z)],t)
+        q
+    in Some (List.rev inj_list,g)
 
 let add_match ?color:(color="") ?style:(style="") l remanent =
-   let config =
+  let config =
     if color = ""
     then remanent.config
     else {remanent.config with pairing_color = color}
@@ -1628,14 +1632,14 @@ let add_proj ?color:(color="") ?style:(style="") ?name:(name=None)   ?ca:(ca=Non
     else {config with projection_style = style }
   in
   fst (List.fold_left
-    (fun (remanent,name) (x,y) ->
-      let q,name =
-	match name
-	with None -> None,None
-	| Some [] -> None,None
-	| Some (t::q) -> Some q,t
-      in
-      (add_proj_elt ~name:name ~ca:ca ~cb:cb ~donotfuse:donotfuse config x y remanent,q)) (remanent,name) l)
+         (fun (remanent,name) (x,y) ->
+            let q,name =
+              match name
+              with None -> None,None
+                 | Some [] -> None,None
+                 | Some (t::q) -> Some q,t
+            in
+            (add_proj_elt ~name:name ~ca:ca ~cb:cb ~donotfuse:donotfuse config x y remanent,q)) (remanent,name) l)
 
 let add_emb ?color:(color="") ?style:(style="") ?ca:(ca=None) ?cb:(cb=None) ?donotfuse:(donotfuse=false) l remanent =
   let config =
@@ -1658,31 +1662,31 @@ let disjoint_union_with_match remanent remanent =
 let move_remanent_right_to delta remanent remanent' =
   match corners remanent,corners remanent'
   with None, _ -> remanent
-  | _,None -> remanent
-  | Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') ->
-    translate_graph {abscisse = xmax'-.xmin+.delta ; ordinate =  0.} remanent
+     | _,None -> remanent
+     | Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') ->
+       translate_graph {abscisse = xmax'-.xmin+.delta ; ordinate =  0.} remanent
 
 let move_remanent_left_to delta remanent remanent' =
   match corners remanent,corners remanent'
   with None, _ -> remanent
-  | _,None -> remanent
-  | Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') ->
-    translate_graph {abscisse = xmin'-.xmax-.delta ; ordinate = 0.} remanent
+     | _,None -> remanent
+     | Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') ->
+       translate_graph {abscisse = xmin'-.xmax-.delta ; ordinate = 0.} remanent
 
 
 let move_remanent_above delta remanent remanent' =
   match corners remanent,corners remanent'
   with None, _ -> remanent
-  | _,None -> remanent
-  | Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') ->
-    translate_graph { abscisse = 0.; ordinate =  ymax'-.ymin+.delta} remanent
+     | _,None -> remanent
+     | Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') ->
+       translate_graph { abscisse = 0.; ordinate =  ymax'-.ymin+.delta} remanent
 
 let move_remanent_bellow delta remanent remanent' =
   match corners remanent,corners remanent'
   with None, _ -> remanent
-  | _,None -> remanent
-  | Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') ->
-    translate_graph { abscisse = 0. ; ordinate = ymin'-.ymax-.delta} remanent
+     | _,None -> remanent
+     | Some (xmin,xmax,ymin,ymax),Some (xmin',xmax',ymin',ymax') ->
+       translate_graph { abscisse = 0. ; ordinate = ymin'-.ymax-.delta} remanent
 
 let init config =
   let remanent = init config in
@@ -1733,20 +1737,20 @@ let add_rule x y ?reversible:(reversible=false) ?directives:(directives=[]) rema
     ->
     let g =
       add_link
-	{(rule remanent.config)
-	 with width = item.width ;
-	   color = item.color ; tags = item.tags } node_id2 node_id1 remanent
+        {(rule remanent.config)
+         with width = item.width ;
+              color = item.color ; tags = item.tags } node_id2 node_id1 remanent
     in
     let g =
       if reversible
       then
-	add_link
-	  {(rule remanent.config) with
-	    width = item.width ;
-	    color = item.color ; tags = item.tags }
-	  node_id1 node_id2 g
+        add_link
+          {(rule remanent.config) with
+           width = item.width ;
+           color = item.color ; tags = item.tags }
+          node_id1 node_id2 g
       else
-	g
+        g
     in
     if item.comment = ""
     then
@@ -1755,10 +1759,10 @@ let add_rule x y ?reversible:(reversible=false) ?directives:(directives=[]) rema
       let angle = anticlockwise angle' 90. in
       let cangle = cos (to_radius angle) in
       let cangle =
-	if cangle > 0. then cangle else -.cangle
+        if cangle > 0. then cangle else -.cangle
       in
       let d =
-	(0.023*.(float_of_int remanent.config.binding_type_font)+.(dummy_txt_item remanent.config).height/.2.)*.cangle
+        (0.023*.(float_of_int remanent.config.binding_type_font)+.(dummy_txt_item remanent.config).height/.2.)*.cangle
       in
       let c = point_on_ellipse {abscisse=x;ordinate=y} d d angle 1. in
       insert_text_here item.comment c.abscisse c.ordinate g
@@ -1781,9 +1785,9 @@ let put_a_cross x y x' y' remanent =
   in
   let edge =
     {(rule remanent.config)
-       with
-	 forward = false ; width = width ; comment = comment ;
-	 color = "red" ; tags = TagMap.empty }
+     with
+      forward = false ; width = width ; comment = comment ;
+      color = "red" ; tags = TagMap.empty }
   in
   match
     List.map
@@ -1791,7 +1795,7 @@ let put_a_cross x y x' y' remanent =
       [node_id1;node_id2;node_id3;node_id4]
   with
     [Some node1;Some node2;Some node3;Some node4] ->
-      add_link edge node_id4 node_id3 (add_link edge node_id2 node_id1 remanent )
+    add_link edge node_id4 node_id3 (add_link edge node_id2 node_id1 remanent )
   | _ ->
     let _ = Printf.fprintf stderr "ERROR, cannot create a cross, the just created nodes do not exist\n" in remanent
 
@@ -1807,10 +1811,10 @@ let cross remanent =
 
 let tag_all_nodes t i remanent =
   map_node
-      (fun node ->
-	{node with tags = add_tag t i node.tags})
-      (fun x -> x)
-      remanent
+    (fun node ->
+       {node with tags = add_tag t i node.tags})
+    (fun x -> x)
+    remanent
 
 let lift_list2 fst snd l =
   List.rev_map
@@ -1826,33 +1830,33 @@ let lift_agent_list sigma =
   lift_list2 (lift_agent sigma) (lift_site_list sigma)
 
 let move graph cx cy =
-    match corners_p p_agent graph
-    with
-      None -> graph
-    | Some (minx,maxx,miny,maxy) ->
-       let x = (maxx+.minx)/.2. in
-       let y = (maxy+.miny)/.2. in
-       translate_graph {abscisse=cx-.x;ordinate=cy-.y} graph
+  match corners_p p_agent graph
+  with
+    None -> graph
+  | Some (minx,maxx,miny,maxy) ->
+    let x = (maxx+.minx)/.2. in
+    let y = (maxy+.miny)/.2. in
+    translate_graph {abscisse=cx-.x;ordinate=cy-.y} graph
 
- let bind (extrag1,g1) (extrag2,g2) c1 c2 i1 i2 style color g =
-    add_emb ~color:color ~style:style ~ca:(Some c1) ~cb:(Some c2)
-	    (match extrag1,extrag2
-	     with [a],[b] -> [i1 a,i2 b]
-		| [a],_ ->let a=i1 a in
-			   IdMap.fold
-			     (fun _ -> IdSet.fold (fun b l-> (a,i2 b)::l))
-			     g2.agents
-			     []
-		| _,[b] -> let b=i2 b in
-			   IdMap.fold
-			     (fun _ -> IdSet.fold (fun a l -> (i1 a,b)::l))
-			     g1.agents
-			     []
-		| _,_ ->  IdMap.fold
-			    (fun _ -> IdSet.fold (fun a l -> (i1 a,i2 a)::l))
-			   g1.agents
-			   []
-	    ) g
+let bind (extrag1,g1) (extrag2,g2) c1 c2 i1 i2 style color g =
+  add_emb ~color:color ~style:style ~ca:(Some c1) ~cb:(Some c2)
+    (match extrag1,extrag2
+     with [a],[b] -> [i1 a,i2 b]
+        | [a],_ ->let a=i1 a in
+          IdMap.fold
+            (fun _ -> IdSet.fold (fun b l-> (a,i2 b)::l))
+            g2.agents
+            []
+        | _,[b] -> let b=i2 b in
+          IdMap.fold
+            (fun _ -> IdSet.fold (fun a l -> (i1 a,b)::l))
+            g1.agents
+            []
+        | _,_ ->  IdMap.fold
+                    (fun _ -> IdSet.fold (fun a l -> (i1 a,i2 a)::l))
+                    g1.agents
+                    []
+    ) g
 
 
 let neutral_extension x = ([],[],[]),x
@@ -1876,8 +1880,8 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
   let alpha =
     match vgap
     with None -> 0.75
-    | Some (a:float) ->
-      a/.(rule_width+.2.*.rule_margin)
+       | Some (a:float) ->
+         a/.(rule_width+.2.*.rule_margin)
   in
   let angle = sample_angle node.orientation in
   let (l1,l2,l3),lhs = extend_lhs domain in
@@ -1908,9 +1912,9 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
   let cornerrhs =
     match
       corners rhs,corners_p p_agent rhs
-     with
-       Some (xm,xM,_,_), Some(_,_,ym,yM) -> xm,xM,ym,yM
-     | None,_ | _,None -> 0.,0.,0.,0.
+    with
+      Some (xm,xM,_,_), Some(_,_,ym,yM) -> xm,xM,ym,yM
+    | None,_ | _,None -> 0.,0.,0.,0.
   in
   let distance = (rule_width +.rule_margin*.2.) *. node.scale_factor  in
   let rulex,ruley,deltax,deltay,distancex,distancey = compute_padding cornerlhs cornerrhs angle distance in
@@ -1920,7 +1924,7 @@ let build_rule ?file:(file="") ?hgap:(hgap=None)  ?vgap:(vgap=None) ?explicit:(e
     if explicit
     then
       let domain = move domain (rulex-.distancey*.alpha)
-	(ruley-.distancex*.alpha) in
+          (ruley-.distancex*.alpha) in
       let _,inj,rule = disjoint_union domain rule in
       inj,rule
     else
@@ -1978,7 +1982,7 @@ let build_losange ?file:(file="") ?hgap:(hgap=None) ?vgap:(vgap=None) ?bottom:(b
     with
     | None -> None,graph
     | Some a ->
-       let a,b = a graph in Some a,b
+      let a,b = a graph in Some a,b
   in
   let (node_left:valuation),g_left = extend_left g_bottom in
   let g_left,g_bottom = unify_id (g_left,g_bottom) in
@@ -2026,25 +2030,25 @@ let build_losange ?file:(file="") ?hgap:(hgap=None) ?vgap:(vgap=None) ?bottom:(b
   let list=
     (match g_bottom'
      with None -> (fun x -> x)
-	| Some g -> (fun x -> g::x))
-    (g_bottom::g_left::g_right::g_top::(match g_top' with None -> [] | Some (_,g) -> [g]))
+        | Some g -> (fun x -> g::x))
+      (g_bottom::g_left::g_right::g_top::(match g_top' with None -> [] | Some (_,g) -> [g]))
   in
   let g = disjoint_union_list list in
   let g,l =
     match g with None -> raise Exit
-	       | Some (l,g) ->
- 		   let l = List.rev_map lift_agent (List.rev l) in
-		   begin
-		      match g_bottom',l with
-		      | None,_ | _,[]-> g,l
-		      | Some g_bottom',t::t1::tl::tr::q ->
-			 let extra_bottom',g_bottom' = fill_empty g_bottom' in
-			 let g = bind (extra_bottom',g_bottom') (extra_bottom,g_bottom) c.b'_b c.b_b' t t1  style_1 color_1 g in
-			 let g = bind (extra_bottom',g_bottom') (extra_left,g_left) c.b'_l c.l_b'  t tl style_2 color_2l g in
-			 let g = bind (extra_bottom',g_bottom') (extra_right,g_right) c.b'_r c.r_b' t tr style_2 color_2r g in
-			 g,t1::tl::tr::q
-		      | _ -> failwith "internal error in build_losange"
-		    end
+               | Some (l,g) ->
+                 let l = List.rev_map lift_agent (List.rev l) in
+                 begin
+                   match g_bottom',l with
+                   | None,_ | _,[]-> g,l
+                   | Some g_bottom',t::t1::tl::tr::q ->
+                     let extra_bottom',g_bottom' = fill_empty g_bottom' in
+                     let g = bind (extra_bottom',g_bottom') (extra_bottom,g_bottom) c.b'_b c.b_b' t t1  style_1 color_1 g in
+                     let g = bind (extra_bottom',g_bottom') (extra_left,g_left) c.b'_l c.l_b'  t tl style_2 color_2l g in
+                     let g = bind (extra_bottom',g_bottom') (extra_right,g_right) c.b'_r c.r_b' t tr style_2 color_2r g in
+                     g,t1::tl::tr::q
+                   | _ -> failwith "internal error in build_losange"
+                 end
   in
   match l with
     l_bottom::l_left::l_right::l_top::q ->
@@ -2055,13 +2059,13 @@ let build_losange ?file:(file="") ?hgap:(hgap=None) ?vgap:(vgap=None) ?bottom:(b
     let g = bind (extra_right,g_right) (extra_top,g_top) c.r_t c.t_r l_right l_top style_4 color_4r g in
     let g =
       match g_top',q with
-	None,_ | _,[] -> g
+        None,_ | _,[] -> g
       | Some (_,g_top'),l_top'::_ ->
-	 let extra_top',g_top' = fill_empty g_top' in
-	 let g = bind (extra_left,g_left) (extra_top',g_top') c.l_t' c.t'_l l_left l_top' style_5 color_5l g in
-	 let g = bind (extra_right,g_right) (extra_top',g_top') c.r_t' c.t'_r l_right (compose l_top' proj_top) style_5 color_5r g in
-	 let g = bind (extra_top,g_top) (extra_top',g_top') c.t_t' c.t'_t l_top (compose l_top' proj_top) style_6 color_6 g in
-	 g
+        let extra_top',g_top' = fill_empty g_top' in
+        let g = bind (extra_left,g_left) (extra_top',g_top') c.l_t' c.t'_l l_left l_top' style_5 color_5l g in
+        let g = bind (extra_right,g_right) (extra_top',g_top') c.r_t' c.t'_r l_right (compose l_top' proj_top) style_5 color_5r g in
+        let g = bind (extra_top,g_top) (extra_top',g_top') c.t_t' c.t'_t l_top (compose l_top' proj_top) style_6 color_6 g in
+        g
     in
     let (id:lift) = (fun x-> x),(fun y->y),(fun z->z) in
     let _ = if file <> "" then dump file g in
@@ -2072,75 +2076,75 @@ let build_losange ?file:(file="") ?hgap:(hgap=None) ?vgap:(vgap=None) ?bottom:(b
 let rename_tag s s' =
   let f =
     (fun n ->
-      {n with tags =
-	  TagMap.fold
-	    (fun tag i map ->
-	      if tag = s
-	      then
-		let old =
-		  match
-		    TagMap.find_option s' map
-		  with
-		  | Some x -> x
-		  | None -> IntSet.empty
-		in
-		TagMap.add s' (IntSet.union old i)
-		  (TagMap.remove s map)
-	      else
-		map )
-	    n.tags
-	    n.tags})
+       {n with tags =
+                 TagMap.fold
+                   (fun tag i map ->
+                      if tag = s
+                      then
+                        let old =
+                          match
+                            TagMap.find_option s' map
+                          with
+                          | Some x -> x
+                          | None -> IntSet.empty
+                        in
+                        TagMap.add s' (IntSet.union old i)
+                          (TagMap.remove s map)
+                      else
+                        map )
+                   n.tags
+                   n.tags})
   in map_node f f
 
-	      let int_of_agent x = x
+let int_of_agent x = x
 let tag_flow_from graph1 ag s s' graph2 =
   let edge2 =
     Id2Map.fold
       (fun (id1,id2) (edge:'a list) edge2 ->
-	match
-	    IdMap.find_option id1 ag
-	  with
-	  | None -> edge2
-	  | Some id1_list' ->
-	    begin
-	      match
-		IdMap.find_option id2 ag
-	      with
-	      | None -> edge2
-	      | Some id2_list' ->
-		begin
-		  List.fold_left
-		    (fun edge2 edge_elt ->
-		      match TagMap.find_option s edge_elt.tags
-		      with
-		      | None -> edge2
-		      | Some i ->
-			begin
-			  List.fold_left
-			    (fun edge2 id1' ->
-			      List.fold_left
-				(fun edge2 id2' ->
-				  let id1',id2',edge_elt =
-				      if compare id1' id2' < 0
-				      then id2',id1',op edge_elt
-				      else id1',id2',edge_elt
-				  in
-				  let old_l =
-				    match
-				      Id2Map.find_option (id1',id2') edge2
-				    with
-				    | None -> []
-				    | Some l -> l
-				  in
-				    Id2Map.add (id1',id2')
-				      ({edge_elt with tags = TagMap.add s' i (TagMap.remove s edge_elt.tags)}::old_l) edge2)
-				edge2 id2_list')
-			    edge2 id1_list'
-			end)
-		    edge2
-		    (List.rev edge )
-	      end
-	  end )
+         match
+           IdMap.find_option id1 ag
+         with
+         | None -> edge2
+         | Some id1_list' ->
+           begin
+             match
+               IdMap.find_option id2 ag
+             with
+             | None -> edge2
+             | Some id2_list' ->
+               begin
+                 List.fold_left
+                   (fun edge2 edge_elt ->
+                      match TagMap.find_option s edge_elt.tags
+                      with
+                      | None -> edge2
+                      | Some i ->
+                        begin
+                          List.fold_left
+                            (fun edge2 id1' ->
+                               List.fold_left
+                                 (fun edge2 id2' ->
+                                    let id1',id2',edge_elt =
+                                      if compare id1' id2' < 0
+                                      then id2',id1',op edge_elt
+                                      else id1',id2',edge_elt
+                                    in
+                                    let old_l =
+                                      match
+                                        Id2Map.find_option (id1',id2') edge2
+                                      with
+                                      | None -> []
+                                      | Some l -> l
+                                    in
+                                    Id2Map.add (id1',id2')
+                                      ({edge_elt with tags = TagMap.add s' i (TagMap.remove s edge_elt.tags)}::old_l) edge2)
+                                 edge2 id2_list')
+                            edge2 id1_list'
+                        end)
+                   edge2
+                   (List.rev edge )
+               end
+           end )
       graph1.edges
       graph2.edges
   in
@@ -2159,33 +2163,33 @@ let add_asso x y map =
 let site_map_from_agent_list graph1 graph2 l =
   List.fold_left
     (fun map (x,y) ->
-      match
-	IdMap.find_option x graph1.items
-      with
-      | None -> map
-      | Some x ->
-	begin
-    	  match
-	    IdMap.find_option y graph2.items
-	  with
-	  | None -> map
-	  | Some y ->
-    	    let l_sites = x.sibblings in
-	    IdMap.fold
-	      (fun s_type ->
-		IdSet.fold
-		  ( fun s_id map ->
-		    let l_sites2 =
-		      match
-			IdMap.find_option s_type y.sibblings
-		      with
-		      | None -> IdSet.empty
-		      | Some l -> l
-		    in
-		    IdSet.fold (fun a b -> add_asso s_id a b)
-		      l_sites2 map))
-	      l_sites map
-	end
+       match
+         IdMap.find_option x graph1.items
+       with
+       | None -> map
+       | Some x ->
+         begin
+           match
+             IdMap.find_option y graph2.items
+           with
+           | None -> map
+           | Some y ->
+             let l_sites = x.sibblings in
+             IdMap.fold
+               (fun s_type ->
+                  IdSet.fold
+                    ( fun s_id map ->
+                        let l_sites2 =
+                          match
+                            IdMap.find_option s_type y.sibblings
+                          with
+                          | None -> IdSet.empty
+                          | Some l -> l
+                        in
+                        IdSet.fold (fun a b -> add_asso s_id a b)
+                          l_sites2 map))
+               l_sites map
+         end
     )
     IdMap.empty l
 
@@ -2236,15 +2240,15 @@ let proj_flow_on_a_contact_map ?file:(s="") ?padding:(padding=1.) ?angle:(angle 
   let agent_map =
     IdMap.fold2z
       (fun x y z map ->
-	IdSet.fold
-	  (fun x map  ->
-	    IdSet.fold
-	      (fun y map  -> (x,y)::map)
-	      z
-	      map
-	  )
-	  y
-	  map
+         IdSet.fold
+           (fun x map  ->
+              IdSet.fold
+                (fun y map  -> (x,y)::map)
+                z
+                map
+           )
+           y
+           map
       )
       (fun x y map -> map)
       (fun x y map -> map)
@@ -2263,9 +2267,9 @@ let insert_text_on_boarder list ?padding:(padding=1.) ?inside:(x=Outside) ?direc
   match corners graph
   with
   | None ->
-	List.fold_left
-	  (fun graph (s,_) -> insert_text_here s 0. 0. ~directives:d graph)
-	  graph list
+    List.fold_left
+      (fun graph (s,_) -> insert_text_here s 0. 0. ~directives:d graph)
+      graph list
   | Some (x_min,x_max,y_min,y_max) ->
     let x = (x_min+.x_max)/.2. in
     let y = (y_min+.y_max)/.2. in
@@ -2273,29 +2277,29 @@ let insert_text_on_boarder list ?padding:(padding=1.) ?inside:(x=Outside) ?direc
     let dy = (y_max -. y_min)*. padding in
     List.fold_left
       (fun remanent (s,direction) ->
-	let direction = Geometry.correct_angle_on_rect dx dy direction in
-	let center =
-	  point_on_rectangle
-	    {abscisse=x;ordinate=y}
-	    dx
-	    dy
-	    direction
-	    1.
-	in
-	insert_text_here s center.abscisse center.ordinate ~directives:d remanent )
+         let direction = Geometry.correct_angle_on_rect dx dy direction in
+         let center =
+           point_on_rectangle
+             {abscisse=x;ordinate=y}
+             dx
+             dy
+             direction
+             1.
+         in
+         insert_text_here s center.abscisse center.ordinate ~directives:d remanent )
       graph list
 
 
 let set_co init mode =
   {init with config =
-	       match mode
-	       with Empty -> {init.config with losange_corners = empty_co}
-		  | Middle -> {init.config with losange_corners = middle_co}
-		  | Corners -> {init.config with losange_corners = corners_co}}
+               match mode
+               with Empty -> {init.config with losange_corners = empty_co}
+                  | Middle -> {init.config with losange_corners = middle_co}
+                  | Corners -> {init.config with losange_corners = corners_co}}
 
 let set_ru init mode =
   {init with config =
-	       match mode
-	       with Empty -> {init.config with rule_corners = empty_ru}
-		  | Middle -> {init.config with rule_corners = middle_ru}
-		  | Corners -> {init.config with rule_corners = corners_ru}}
+               match mode
+               with Empty -> {init.config with rule_corners = empty_ru}
+                  | Middle -> {init.config with rule_corners = middle_ru}
+                  | Corners -> {init.config with rule_corners = corners_ru}}
