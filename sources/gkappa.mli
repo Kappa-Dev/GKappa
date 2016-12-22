@@ -50,6 +50,9 @@ type ru_corner =
     l_d: string ;
     r_d: string
   }
+
+type head_type = Normal | Vee
+
 type config =
   {
     empty_graph: string;
@@ -76,6 +79,9 @@ type config =
     rule_length: float ;
     rule_width: int;
     link_width: int;
+    head_scale: float;
+    head_type: head_type;
+    tail_type: head_type;
     pairing_width: int;
     projection_width: int;
     cross_width: int;
@@ -132,6 +138,7 @@ type directive =
   | FillColor of string
   | Comment of string
 
+
 type id
 type agent_type
 type site_type
@@ -186,9 +193,9 @@ val is_empty: remanent_state -> bool
 
 val unify_id: remanent_state * remanent_state -> remanent_state * remanent_state
 
-val add_strong_flow_and_link: site -> site -> remanent_state -> remanent_state
-val add_flow_and_link_list : (site*site) list -> remanent_state -> remanent_state
-val add_flow_list: (site*site) list -> remanent_state -> remanent_state
+val add_strong_flow_and_link: ?directives:directive list -> site -> site -> remanent_state -> remanent_state
+val add_flow_and_link_list : ?directives:directive list -> (site*site) list -> remanent_state -> remanent_state
+val add_flow_list: ?directives:directive list -> (site*site) list -> remanent_state -> remanent_state
 
 val map_id: (id -> id) -> remanent_state ->
   (agent->agent)*(site->site)*(state->state)*remanent_state

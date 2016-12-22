@@ -122,6 +122,8 @@ type directive =
   | Color of string
   | FillColor of string
   | Comment of string
+
+type head_type = Normal | Vee
 type id = int
 type agent_type = id
 type site_type = id
@@ -189,6 +191,9 @@ type config =
     rule_length: float ;
     rule_width: int;
     link_width: int;
+    head_scale: float;
+    head_type: head_type;
+    tail_type: head_type;
     pairing_width: int;
     projection_width: int;
     cross_width: int;
@@ -329,7 +334,10 @@ let corners_co
 type intset = IntSet.t
 type sig_kind = Agent_type | Site_type | State_type
 type node_kind = Empty_agent | Agent of id | Site of id | State of id | Rule_source | Rule_target | Free of int | Bound | Dummy_node
-type edge_kind = Link | Relation of (node_kind * node_kind) | Free_symbol of int | Bound_symbol  | Rule | Dummy_edge
+type edge_kind =
+  | Link
+  | Relation of (node_kind * node_kind * head_type * (float option))
+  | Free_symbol of int | Bound_symbol  | Rule | Dummy_edge
 
 let assert_compatible_items x y = true (*to do*)
 
@@ -353,7 +361,7 @@ let string_of_edge_kind x =
   | Bound_symbol -> "-"
   | Dummy_edge -> "Dummy_edge"
   | Link -> "Link"
-  | Relation (_,_) -> "Relation"
+  | Relation (_,_,_,_) -> "Relation"
   | Rule -> "Rule"
 
 let string_of_sig_type x =
@@ -385,6 +393,9 @@ type 'a item =
     corner1:string option;
     corner2:string option;
     canbefused:bool;
+    h_type: head_type;
+    t_type: head_type;
+    h_scale: float;
     forward: bool;
     backward: bool;
     priority: int;
@@ -418,6 +429,9 @@ let dummy_item =
     coordinate = origin;
     shape = "ellipse";
     scale_factor=1.;
+    h_type= Normal ;
+    t_type = Normal ;
+    h_scale = 1. ;
     orientation=n;
 
   }
@@ -458,7 +472,10 @@ let link config =
   {
     dummy_item
     with kind = Link ;
-         width = (float_of_int config.link_width)
+         width = (float_of_int config.link_width);
+         t_type = config.tail_type ;
+         h_type = config.head_type ;
+         h_scale = config.head_scale ;
   }
 let pairing config =
   {
@@ -491,7 +508,37 @@ let rule config =
          kind = Rule ;
          width = (float_of_int config.rule_width) ;
          color = config.rule_color ; style = config.rule_style }
-let weak_flow config =
+
+let update_head ?directives config =
+  match
+    directives
+  with
+  | None -> config
+  | Some l ->
+    List.fold_left
+      (fun config a ->
+         match a with
+         | Set_scale f ->
+           { config
+             with head_scale = f }
+         | Scale f ->
+           {config with head_scale = f*.config.head_scale}
+         | Shape x ->
+           begin
+             match String.lowercase x
+           with
+             "normal" ->
+             { config with head_type = Normal}
+           | "vee" ->
+             {config with head_type = Vee}
+           | _ -> config
+           end
+         | _ -> config
+      )
+      config l
+
+let weak_flow ?directives config =
+  let config = update_head ?directives config in
   { (link config)
     with
       priority = 2;
@@ -501,7 +548,9 @@ let weak_flow config =
       width = (float_of_int config.weak_flow_width);
       tags = TagMap.add "flow" (IntSet.add 1 (IntSet.add 2 IntSet.empty)) TagMap.empty}
 
-let flow config =
+
+let flow ?directives config =
+  let config = update_head ?directives config in
   { (weak_flow config)
     with
       priority = 3;
@@ -510,7 +559,8 @@ let flow config =
       width = (float_of_int config.flow_width);
       tags = TagMap.add "flow" (IntSet.add 1 IntSet.empty) TagMap.empty}
 
-let strong_flow config =
+let strong_flow ?directives config =
+  let config = update_head ?directives config in
   { (flow config)
     with
       color = config.strong_flow_color;
@@ -869,7 +919,14 @@ let add_internal_state site_type state ?directives:(attributes=[])  remanent =
   add_son site_type state (State site_type) "add_internal_state" "an internal state" "site" attributes p_state remanent
 
 let op edge =
-  {edge with backward = edge.forward ; forward = edge.backward ; corner1 = edge.corner2 ; corner2 = edge.corner1 }
+  {edge
+   with
+    backward = edge.forward ;
+    forward = edge.backward ;
+    corner1 = edge.corner2 ;
+    corner2 = edge.corner1 ;
+    h_type = edge.t_type ;
+    t_type = edge.h_type }
 
 let equ_link s1 s2 edge =
   if s1 = s2
@@ -883,9 +940,15 @@ let dir_of_edge e =
      | true,false -> "back"
      | true,true -> "both"
 
-let fusion_edge s1 s2 =
-  {s2 with forward = s1.forward || s2.forward ; backward = s1.backward || s2.backward }
+let merge_type a b =
+  match a,b
+  with
+  | Normal, _ -> b
+  | _,Normal -> a
+  | Vee,Vee -> Vee
 
+let fusion_edge s1 s2 =
+  {s2 with forward = s1.forward || s2.forward ; backward = s1.backward || s2.backward ; h_type = merge_type s1.h_type s2.h_type ; t_type = merge_type s1.t_type s2.t_type}
 
 let rec add_link edge n1 n2 remanent =
   if compare n1 n2 < 0
@@ -909,13 +972,13 @@ let add_relation relation = add_link relation
 let add_match_elt config = add_link (pairing config)
 let add_proj_elt ?name:(name=None) ?ca:(ca=None) ?cb:(cb=None) ?donotfuse:(donotfuse=false) config = add_link (projection ~name:name ~ca:ca ~cb:cb ~donotfuse:donotfuse config)
 let add_edge x y z = add_relation (link z.config) x y z
-let add_weak_flow_and_link x y z = add_relation (weak_flow z.config) x y (add_edge  x y z)
-let add_flow_and_link x y z = add_relation (flow z.config) x y (add_weak_flow_and_link x y z)
-let add_strong_flow_and_link x y z = add_relation (strong_flow z.config) x y (add_flow_and_link x y z)
+let add_weak_flow_and_link ?directives x y z = add_relation (weak_flow ?directives z.config) x y (add_edge  x y z)
+let add_flow_and_link ?directives x y z = add_relation (flow ?directives z.config) x y (add_weak_flow_and_link ?directives x y z)
+let add_strong_flow_and_link ?directives x y z = add_relation (strong_flow ?directives z.config) x y (add_flow_and_link ?directives x y z)
 
-let add_weak_flow x y z = add_relation (weak_flow z.config) x y z
-let add_flow x y z = add_relation (flow z.config) x y (add_weak_flow x y z)
-let add_strong_flow x y z = add_relation (strong_flow z.config) x y (add_flow x y z)
+let add_weak_flow ?directives x y z = add_relation (weak_flow ?directives z.config) x y z
+let add_flow ?directives x y z = add_relation (flow z.config) x y (add_weak_flow ?directives x y z)
+let add_strong_flow ?directives x y z = add_relation (strong_flow ?directives z.config) x y (add_flow ?directives x y z)
 
 let color_of_edge e = e.color
 let corner1_of_edge e =
@@ -1060,7 +1123,27 @@ let filter_tags list map =
   def list true (fun (s,i) set -> IntSet.mem i set) fst
 
 let dump_edge log (s1,s2) edge remanent =
-  Printf.fprintf log "%s%s -> %s%s [dir = \"%s\",color=\"%s\",penwidth=%s,label=\"%s\",style=\"%s\"];\n" s1 (corner1_of_edge edge) s2 (corner2_of_edge edge) (dir_of_edge edge) (color_of_edge edge) (pen_width_of edge) (escape_color edge.comment (color_of_edge edge))  (edge.style)
+  let arrowhead =
+    match dir_of_edge edge,edge.h_type with
+    | ("none" | "both" | "forward"),_ | _,Normal -> ""
+    | "back",Vee -> ",arrowhead=\"vee\""
+    in
+  let arrowtail =
+    match dir_of_edge edge,edge.t_type with
+    | ("none" | "both" | "backward") ,_ | _,Normal -> ""
+    | "back",Vee -> ",arrowtail=\"vee\""
+  in
+  Printf.fprintf log
+    "%s%s -> %s%s [dir = \"%s\",color=\"%s\",penwidth=%s,label=\"%s\",style=\"%s\"%s%s%s];\n"
+    s1 (corner1_of_edge edge) s2 (corner2_of_edge edge) (dir_of_edge edge)
+    (color_of_edge edge) (pen_width_of edge)
+    (escape_color edge.comment (color_of_edge edge))
+    (edge.style)
+    (match edge.h_scale
+     with
+     | 1. ->  ""
+     | f  -> ",arrowsize=\""^(string_of_float f)^"\"")
+    arrowhead arrowtail
 
 
 let dump_node log filter filter_label filter_color node remanent =
@@ -1256,13 +1339,26 @@ let add_in_graph l remanent =
 let edge_list f l remanent =
   List.fold_left (fun remanent (x,y) -> f x y remanent) remanent l
 
-let add_flow_list = edge_list add_flow
-let add_flow_and_link_list = edge_list add_flow_and_link
-let add_strong_flow_list = edge_list add_strong_flow
-let add_strong_flow_and_link_list = edge_list add_strong_flow
-let add_link_list = edge_list add_edge
-let add_weak_flow_list = edge_list add_weak_flow
-let add_weak_flow_and_link_list = edge_list add_weak_flow_and_link
+let add_flow_list ?directives =
+  edge_list
+    (add_flow ?directives)
+let add_flow_and_link_list ?directives =
+  edge_list
+    (add_flow_and_link ?directives)
+let add_strong_flow_list ?directives =
+  edge_list
+    (add_strong_flow ?directives)
+let add_strong_flow_and_link_list ?directives =
+  edge_list
+    (add_strong_flow ?directives)
+let add_link_list  =
+  edge_list add_edge
+let add_weak_flow_list ?directives =
+  edge_list
+    (add_weak_flow ?directives)
+let add_weak_flow_and_link_list ?directives =
+  edge_list
+    (add_weak_flow_and_link ?directives)
 
 let add_free_list l remanent =
   List.fold_left
