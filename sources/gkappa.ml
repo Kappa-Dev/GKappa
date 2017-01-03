@@ -1130,8 +1130,8 @@ let dump_edge log (s1,s2) edge remanent =
     in
   let arrowtail =
     match dir_of_edge edge,edge.t_type with
-    | ("none" | "both" | "backward") ,_ | _,Normal -> ""
-    | "back",Vee -> ",arrowtail=\"vee\""
+    | ("none" | "both" | "back") ,_ | _,Normal -> ""
+    | "forward",Vee -> ",arrowtail=\"vee\""
   in
   Printf.fprintf log
     "%s%s -> %s%s [dir = \"%s\",color=\"%s\",penwidth=%s,label=\"%s\",style=\"%s\"%s%s%s];\n"
