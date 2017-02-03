@@ -193,6 +193,7 @@ val is_empty: remanent_state -> bool
 
 val unify_id: remanent_state * remanent_state -> remanent_state * remanent_state
 
+val add_weak_flow_list: ?directives:directive list -> (site*site) list -> remanent_state -> remanent_state
 val add_strong_flow_and_link: ?directives:directive list -> site -> site -> remanent_state -> remanent_state
 val add_flow_and_link_list : ?directives:directive list -> (site*site) list -> remanent_state -> remanent_state
 val add_flow_list: ?directives:directive list -> (site*site) list -> remanent_state -> remanent_state

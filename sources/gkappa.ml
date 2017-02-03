@@ -518,6 +518,9 @@ let update_head ?directives config =
     List.fold_left
       (fun config a ->
          match a with
+         | Color s ->
+           { config
+             with weak_flow_color = s}
          | Set_scale f ->
            { config
              with head_scale = f }
@@ -536,6 +539,8 @@ let update_head ?directives config =
          | _ -> config
       )
       config l
+
+
 
 let weak_flow ?directives config =
   let config = update_head ?directives config in
@@ -1348,6 +1353,9 @@ let add_flow_and_link_list ?directives =
 let add_strong_flow_list ?directives =
   edge_list
     (add_strong_flow ?directives)
+let add_weak_flow_list ?directives =
+  edge_list
+    (add_weak_flow ?directives)
 let add_strong_flow_and_link_list ?directives =
   edge_list
     (add_strong_flow ?directives)
