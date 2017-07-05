@@ -571,6 +571,16 @@ let flow ?directives config =
       width = (float_of_int config.flow_width);
       tags = TagMap.add "flow" (IntSet.add 1 IntSet.empty) TagMap.empty}
 
+let relation ?directives config =
+  let config = update_head ?directives config in
+  {  (pairing config)
+     with
+      priority = 3;
+      color = config.weak_flow_color;
+      style = config.weak_flow_style ;
+      width = (float_of_int config.weak_flow_width);
+      tags = TagMap.empty}
+
 let strong_flow ?directives config =
   let config = update_head ?directives config in
   { (flow config)
@@ -990,6 +1000,8 @@ let add_strong_flow_and_link ?directives x y z = add_relation (strong_flow ?dire
 
 let add_weak_flow ?directives x y z = add_relation (weak_flow ?directives z.config) x y z
 let add_flow ?directives x y z = add_relation (flow z.config) x y (add_weak_flow ?directives x y z)
+let add_site_relation ?directives x y z =
+  add_relation (relation z.config) x y (add_edge x y z)
 let add_strong_flow ?directives x y z = add_relation (strong_flow ?directives z.config) x y (add_flow ?directives x y z)
 
 let color_of_edge e = e.color
@@ -1354,6 +1366,9 @@ let edge_list f l remanent =
 let add_flow_list ?directives =
   edge_list
     (add_flow ?directives)
+let add_site_relation_list ?directives =
+  edge_list
+    (add_site_relation ?directives)
 let add_flow_and_link_list ?directives =
   edge_list
     (add_flow_and_link ?directives)

@@ -197,6 +197,7 @@ val add_weak_flow_list: ?directives:directive list -> (site*site) list -> remane
 val add_strong_flow_and_link: ?directives:directive list -> site -> site -> remanent_state -> remanent_state
 val add_flow_and_link_list : ?directives:directive list -> (site*site) list -> remanent_state -> remanent_state
 val add_flow_list: ?directives:directive list -> (site*site) list -> remanent_state -> remanent_state
+val add_site_relation_list: ?directives:directive list -> (site*site) list -> remanent_state -> remanent_state
 
 val map_id: (id -> id) -> remanent_state ->
   (agent->agent)*(site->site)*(state->state)*remanent_state
