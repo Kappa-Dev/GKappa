@@ -524,6 +524,13 @@ let update_head ?directives config =
          | Set_scale f ->
            { config
              with head_scale = f }
+         | Width i ->
+           { config
+             with
+               strong_flow_width = int_of_float i ;
+               weak_flow_width = (int_of_float i) ;
+               flow_width = int_of_float i
+           }
          | Scale f ->
            {config with head_scale = f*.config.head_scale}
          | Shape x ->
