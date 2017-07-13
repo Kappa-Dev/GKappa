@@ -547,6 +547,18 @@ let update_head ?directives config =
       )
       config l
 
+let update_comment ?directives edge =
+  match directives with
+  | None -> edge
+  | Some l ->
+    List.fold_left
+      (fun edge c ->
+         match c with
+         | Comment s -> {edge with comment = s}
+         | _ -> edge)
+      edge
+      l
+
 
 
 let weak_flow ?directives config =
@@ -573,7 +585,7 @@ let flow ?directives config =
 
 let relation ?directives config =
   let config = update_head ?directives config in
-  {  (pairing config)
+  {  (update_comment ?directives (pairing config))
      with
       priority = 3;
       color = config.weak_flow_color;
@@ -1001,7 +1013,7 @@ let add_strong_flow_and_link ?directives x y z = add_relation (strong_flow ?dire
 let add_weak_flow ?directives x y z = add_relation (weak_flow ?directives z.config) x y z
 let add_flow ?directives x y z = add_relation (flow z.config) x y (add_weak_flow ?directives x y z)
 let add_site_relation ?directives x y z =
-  add_relation (relation z.config) x y (add_edge x y z)
+  add_relation (relation ?directives z.config) x y (add_edge x y z)
 let add_strong_flow ?directives x y z = add_relation (strong_flow ?directives z.config) x y (add_flow ?directives x y z)
 
 let color_of_edge e = e.color
@@ -1158,9 +1170,9 @@ let dump_edge log (s1,s2) edge remanent =
     | "forward",Vee -> ",arrowtail=\"vee\""
   in
   Printf.fprintf log
-    "%s%s -> %s%s [dir = \"%s\",color=\"%s\",penwidth=%s,label=\"%s\",style=\"%s\"%s%s%s];\n"
+    "%s%s -> %s%s [dir = \"%s\",color=\"%s\",penwidth=%s,fontcolor=\"%s\",label=\"%s\",style=\"%s\"%s%s%s];\n"
     s1 (corner1_of_edge edge) s2 (corner2_of_edge edge) (dir_of_edge edge)
-    (color_of_edge edge) (pen_width_of edge)
+    (color_of_edge edge) (pen_width_of edge) (color_of_edge edge)
     (escape_color edge.comment (color_of_edge edge))
     (edge.style)
     (match edge.h_scale
