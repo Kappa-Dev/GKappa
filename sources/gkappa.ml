@@ -131,10 +131,17 @@ type internal_state_type = id
 type agent = id
 type site = id
 type state = id
+type counter_guard_id = id
+type counter_delta_id = id
+type counter_guard = string
+type counter_delta = string
+
 type state_type =
   | Free_site of directive list
   | Bound_site of directive list
   | Internal_state of internal_state_type * directive list
+  | Counter_state of counter_guard * directive list
+  | Counter_delta of counter_delta * directive list
 
 type signature_vars = (agent_type * (site_type * internal_state_type list) list) list
 type signature =
@@ -333,7 +340,7 @@ let corners_co
 
 type intset = IntSet.t
 type sig_kind = Agent_type | Site_type | State_type
-type node_kind = Empty_agent | Agent of id | Site of id | State of id | Rule_source | Rule_target | Free of int | Bound | Dummy_node
+type node_kind = Empty_agent | Agent of id | Site of id | State of id | CounterGuard of id | CounterDelta of id | Rule_source | Rule_target | Free of int | Bound | Dummy_node
 type edge_kind =
   | Link
   | Relation of (node_kind * node_kind * head_type * (float option))
@@ -347,6 +354,8 @@ let string_of_node_kind x =
   | Agent _ -> "Agent"
   | Site _ -> "Site"
   | State _ -> "State"
+  | CounterGuard _ -> "Guard"
+  | CounterDelta _ -> "Delta"
   | Rule_source -> "RuleS"
   | Rule_target -> "RuleT"
   | Dummy_node -> "Dummy_node"
@@ -668,6 +677,9 @@ let dummy_state_item =
     fontsize = 10;
   }
 
+let dummy_guard_item config = dummy_txt_item config
+let dummy_delta_item config = dummy_txt_item config
+
 let init config =
   {
     config = config ;
@@ -704,7 +716,8 @@ let print_warn_attribute log t s =
       | Direction _ -> "Direction"
       | Shape _ -> "Shape"
       | Radius _ -> "Radius"
-      | Scale _ | Set_scale _ -> "Scale")
+      | Scale _ | Set_scale _ -> "Scale"
+      | FontColor _ -> "FontColor")
     s
 
 let rec parse_attributes p s att item =
@@ -755,32 +768,32 @@ let p_txt x =
 let p_agent_type x =
   match x with
   | Comment _ | Tag _ | Direction _ ->  false
-  | Set_scale _ | Scale _ | Radius _ | Shape _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
+  | Set_scale _ | Scale _ | Radius _ | Shape _ | FontColor _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
 
 
 let p_site_type x =
   match x with
   | Comment _ | Tag _ -> false
-  | Set_scale _ | Scale _ | Radius _ | Shape _ | Direction _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
+  | Set_scale _ | FontColor _ | Scale _ | Radius _ | Shape _ | Direction _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
 
 let p_state_type = p_site_type
 
 let p_agent x =
   match x with
   | Comment _ | Direction _ ->  false
-  | Tag _ | Scale _ | Set_scale _ | Radius _ | Shape _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
+  | Tag _ | Scale _ | Set_scale _ | Radius _ | Shape _ | FontColor _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
 
 let p_free x =
   match x with
   | Comment _ | Shape _ |  Fontsize _  ->  false
-  | Direction _ | Scale _ | Set_scale _ | Radius _  | Width _ | Height _ | Color _ | FillColor _ | Tag _  -> true
+  | Direction _ | Scale _ | Set_scale _ | Radius _  | Width _ | Height _ | FontColor _ | Color _ | FillColor _ | Tag _  -> true
 
 let p_bound = p_free
 
 let p_site  x =
   match x with
   | Comment _ -> false
-  | Tag _ | Set_scale _ | Scale _ | Radius _ | Shape _ | Direction _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
+  | Tag _ | Set_scale _ | Scale _ | Radius _ | Shape _ | Direction _ | FillColor _ | FontColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
 
 let p_state = p_site
 
@@ -840,6 +853,10 @@ let add_site_type agent_type name ?directives:(attributes=[]) remanent =
   add_son_type agent_type "add_site_type" "a site" "agent" name (dummy_site_name remanent.config) ~directives:attributes p_site_type remanent.config.site_colors remanent
 
 let add_internal_state_type site_type state ?directives:(attributes=[]) remanent = add_son_type site_type "add_internal_state_type" "an internal state" "site" state (dummy_state_kind remanent.config) ~directives:attributes p_state_type remanent.config.state_colors remanent
+
+let add_internal_state_type site_type state ?directives:(attributes=[]) remanent =
+  add_son_type site_type "add_internal_state_type" "an internal state" "site" state (dummy_state_kind remanent.config) ~directives:attributes p_state_type remanent.config.state_colors remanent
+
 
 let name_of_node id remanent =
   let rec aux id list =
@@ -946,11 +963,51 @@ let add_son father son_type kind error1 error2 error3 attributes p remanent =
     let father_item = { father_item with sibblings = add_sibbling s_id son_type father_item.sibblings } in
     s_id,{remanent with items = IdMap.add father father_item remanent.items}
 
+
+let add_son_counter father item son_string son_type kind error1 error2 error3 attributes p remanent =
+  match
+    IdMap.find_option father remanent.items
+  with
+  | None ->
+    let _ = Printf.fprintf stderr "ERROR: in %s, dandling pointer\n" error1
+    in dummy_id,remanent
+  | Some father_item ->
+    let item = parse_attributes p error3 attributes {item with tags = father_item.tags ; orientation = match kind with CounterDelta _ | CounterGuard _ | State _ -> father_item.orientation | _ -> item.orientation  } in
+    let site_center =
+      (match father_item.shape
+       with
+       | "hexagone" -> point_on_hexagone
+       | "rectangle" | "square" -> point_on_rectangle
+       | _ -> point_on_ellipse)
+        father_item.coordinate
+        (father_item.width *. father_item.scale_factor *. 5.)
+        (father_item.height *. father_item.scale_factor *. 5.)
+        item.orientation
+        item.scale_factor
+    in
+    let item = {item with father = Some father ; kind = kind ; label = son_string ; coordinate = site_center ; sibblings = IdMap.empty } in
+    let s_id,remanent = add_node (fun _ x -> x) item remanent in
+    let father_item = { father_item with sibblings = add_sibbling s_id son_type father_item.sibblings } in
+    s_id,{remanent with items = IdMap.add father father_item remanent.items}
+
 let add_site agent name ?directives:(attributes=[]) remanent =
   add_son agent name (Site name) "add_site" "a site" "agent" attributes p_site remanent
 
 let add_internal_state site_type state ?directives:(attributes=[])  remanent =
   add_son site_type state (State site_type) "add_internal_state" "an internal state" "site" attributes p_state remanent
+
+let add_counter_guard site_type guards ?directives:(attributes=[])  remanent =
+  add_son_counter
+    site_type
+    (dummy_guard_item remanent.config)
+    guards
+    (-1)
+    (CounterGuard site_type)
+    "add_counter_guard" "a guard" "site"
+            attributes p_state remanent
+
+let add_counter_delta site_type delta ?directives:(attributes=[])  remanent =
+  add_son_counter site_type (dummy_delta_item remanent.config) delta (-1) (CounterDelta site_type) "add_counter_delta" "a counter transfer function" "site" attributes p_state remanent
 
 let op edge =
   {edge
@@ -1347,6 +1404,8 @@ let new_state agent site (state_list,remanent) state  =
     | Free_site op  -> add_free site ~directives:op remanent
     | Bound_site op -> add_bound site ~directives:op remanent
     | Internal_state (op1,op2) -> add_internal_state site op1 ~directives:op2  remanent
+    | Counter_state (op1,op2) -> add_counter_guard site op1 ~directives:op2 remanent
+    | Counter_delta (op1,op2) -> add_counter_delta site op1 ~directives:op2 remanent
   in
   id::state_list,remanent
 
