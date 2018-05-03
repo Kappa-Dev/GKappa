@@ -144,15 +144,15 @@ type agent_type
 type site_type
 type internal_state_type
 type counter_guard = string
-type counter_delta = string 
+type counter_delta = string
 type counter_guard_id
 type counter_delta_id
 type state_type =
   | Free_site of directive list
   | Bound_site of directive list
   | Internal_state of internal_state_type * directive list
-  | Counter_state of counter_guard * directive list
-  | Counter_delta of counter_delta * directive list
+  | Counter_state of float * counter_guard * directive list
+  | Counter_delta of float * counter_delta * directive list
 type agent
 type site
 type state
@@ -182,8 +182,8 @@ val add_in_graph: graph -> remanent_state -> graph_vars * remanent_state
 val add_agent: agent_type -> float -> float -> ?directives:directive list -> remanent_state -> agent * remanent_state
 val add_site: agent -> site_type  -> ?directives:directive list -> remanent_state -> site * remanent_state
 val add_internal_state: site -> internal_state_type -> ?directives:directive list -> remanent_state -> state * remanent_state
-val add_counter_guard: site -> counter_guard -> ?directives:directive list -> remanent_state -> counter_guard_id * remanent_state
-val add_counter_delta: site -> counter_delta -> ?directives:directive list -> remanent_state -> counter_delta_id * remanent_state
+val add_counter_guard: float ->  site -> counter_guard -> ?directives:directive list -> remanent_state -> counter_guard_id * remanent_state
+val add_counter_delta: float -> site -> counter_delta -> ?directives:directive list -> remanent_state -> counter_delta_id * remanent_state
 
 val add_free: site -> ?directives:directive list -> remanent_state -> state * remanent_state
 val add_bound: site -> ?directives:directive list -> remanent_state -> state * remanent_state

@@ -140,8 +140,8 @@ type state_type =
   | Free_site of directive list
   | Bound_site of directive list
   | Internal_state of internal_state_type * directive list
-  | Counter_state of counter_guard * directive list
-  | Counter_delta of counter_delta * directive list
+  | Counter_state of float * counter_guard * directive list
+  | Counter_delta of float * counter_delta * directive list
 
 type signature_vars = (agent_type * (site_type * internal_state_type list) list) list
 type signature =
@@ -964,7 +964,7 @@ let add_son father son_type kind error1 error2 error3 attributes p remanent =
     s_id,{remanent with items = IdMap.add father father_item remanent.items}
 
 
-let add_son_counter father item son_string son_type kind error1 error2 error3 attributes p remanent =
+let add_son_counter scale father item son_string son_type kind error1 error2 error3 attributes p remanent =
   match
     IdMap.find_option father remanent.items
   with
@@ -980,8 +980,8 @@ let add_son_counter father item son_string son_type kind error1 error2 error3 at
        | "rectangle" | "square" -> point_on_rectangle
        | _ -> point_on_ellipse)
         father_item.coordinate
-        (father_item.width *. father_item.scale_factor *. 5.)
-        (father_item.height *. father_item.scale_factor *. 5.)
+        (father_item.width *. father_item.scale_factor *.scale)
+        (father_item.height *. father_item.scale_factor*.scale)
         item.orientation
         item.scale_factor
     in
@@ -996,8 +996,9 @@ let add_site agent name ?directives:(attributes=[]) remanent =
 let add_internal_state site_type state ?directives:(attributes=[])  remanent =
   add_son site_type state (State site_type) "add_internal_state" "an internal state" "site" attributes p_state remanent
 
-let add_counter_guard site_type guards ?directives:(attributes=[])  remanent =
+let add_counter_guard scale site_type guards ?directives:(attributes=[])  remanent =
   add_son_counter
+    scale
     site_type
     (dummy_guard_item remanent.config)
     guards
@@ -1006,8 +1007,8 @@ let add_counter_guard site_type guards ?directives:(attributes=[])  remanent =
     "add_counter_guard" "a guard" "site"
             attributes p_state remanent
 
-let add_counter_delta site_type delta ?directives:(attributes=[])  remanent =
-  add_son_counter site_type (dummy_delta_item remanent.config) delta (-1) (CounterDelta site_type) "add_counter_delta" "a counter transfer function" "site" attributes p_state remanent
+let add_counter_delta scale site_type delta ?directives:(attributes=[])  remanent =
+  add_son_counter scale site_type (dummy_delta_item remanent.config) delta (-1) (CounterDelta site_type) "add_counter_delta" "a counter transfer function" "site" attributes p_state remanent
 
 let op edge =
   {edge
@@ -1404,8 +1405,8 @@ let new_state agent site (state_list,remanent) state  =
     | Free_site op  -> add_free site ~directives:op remanent
     | Bound_site op -> add_bound site ~directives:op remanent
     | Internal_state (op1,op2) -> add_internal_state site op1 ~directives:op2  remanent
-    | Counter_state (op1,op2) -> add_counter_guard site op1 ~directives:op2 remanent
-    | Counter_delta (op1,op2) -> add_counter_delta site op1 ~directives:op2 remanent
+    | Counter_state (float,op1,op2) -> add_counter_guard float site op1 ~directives:op2 remanent
+    | Counter_delta (float, op1,op2) -> add_counter_delta float site op1 ~directives:op2 remanent
   in
   id::state_list,remanent
 
