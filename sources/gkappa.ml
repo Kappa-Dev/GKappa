@@ -2501,3 +2501,16 @@ let set_ru init mode =
                with Empty -> {init.config with rule_corners = empty_ru}
                   | Middle -> {init.config with rule_corners = middle_ru}
                   | Corners -> {init.config with rule_corners = corners_ru}}
+
+let add_fictitious_link l remanent =
+  let remanent,l = List.fold_left (fun (x,l) (y,z) ->
+      let n,x = add_empty_node y z x in
+      x,n::l)
+      (remanent,[]) l
+  in
+  let rec aux l remanent =
+    match l with
+    | t::t'::q -> aux (t'::q) (add_edge t t' remanent)
+    |  _ -> remanent
+  in
+  aux l remanent
