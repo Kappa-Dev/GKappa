@@ -191,6 +191,7 @@ val add_binding_type: site -> site_type -> ?directives:directive list -> remanen
 
 val add_free_list: (site * directive list) list -> remanent_state -> state list * remanent_state
 val add_link_list: (site*site) list -> remanent_state -> remanent_state
+val add_oriented_link_list: (site*site) list -> remanent_state -> remanent_state
 val add_fictitious_link: (float*float) list -> remanent_state -> remanent_state
 
 val set_co: remanent_state  -> co_mode -> remanent_state

@@ -486,6 +486,13 @@ let link config =
          h_type = config.head_type ;
          h_scale = config.head_scale ;
   }
+
+let oriented_link config =
+  {
+    (link config)
+    with forward = true ;
+         kind = Link ;
+  }
 let pairing config =
   {
     (link config)
@@ -1064,6 +1071,7 @@ let add_relation relation = add_link relation
 let add_match_elt config = add_link (pairing config)
 let add_proj_elt ?name:(name=None) ?ca:(ca=None) ?cb:(cb=None) ?donotfuse:(donotfuse=false) config = add_link (projection ~name:name ~ca:ca ~cb:cb ~donotfuse:donotfuse config)
 let add_edge x y z = add_relation (link z.config) x y z
+let add_oriented_edge x y z = add_relation (oriented_link z.config) x y z
 let add_weak_flow_and_link ?directives x y z = add_relation (weak_flow ?directives z.config) x y (add_edge  x y z)
 let add_flow_and_link ?directives x y z = add_relation (flow ?directives z.config) x y (add_weak_flow_and_link ?directives x y z)
 let add_strong_flow_and_link ?directives x y z = add_relation (strong_flow ?directives z.config) x y (add_flow_and_link ?directives x y z)
@@ -1455,6 +1463,8 @@ let add_strong_flow_and_link_list ?directives =
     (add_strong_flow ?directives)
 let add_link_list  =
   edge_list add_edge
+  let add_oriented_link_list  =
+    edge_list add_oriented_edge
 let add_weak_flow_list ?directives =
   edge_list
     (add_weak_flow ?directives)
