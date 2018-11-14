@@ -135,6 +135,8 @@ type counter_guard_id = id
 type counter_delta_id = id
 type counter_guard = string
 type counter_delta = string
+type counter_id = string
+type counter_id_id = id
 
 type state_type =
   | Free_site of directive list
@@ -142,6 +144,7 @@ type state_type =
   | Internal_state of internal_state_type * directive list
   | Counter_state of float * counter_guard * directive list
   | Counter_delta of float * counter_delta * directive list
+  | Counter_id of float * counter_id * directive list
 
 type signature_vars = (agent_type * (site_type * internal_state_type list) list) list
 type signature =
@@ -340,7 +343,19 @@ let corners_co
 
 type intset = IntSet.t
 type sig_kind = Agent_type | Site_type | State_type
-type node_kind = Empty_agent | Agent of id | Site of id | State of id | CounterGuard of id | CounterDelta of id | Rule_source | Rule_target | Free of int | Bound | Dummy_node
+type node_kind =
+    Empty_agent
+  | Agent of id
+  | Site of id
+  | State of id
+  | CounterGuard of id
+  | CounterDelta of id
+  | CounterId of id
+  | Rule_source
+  | Rule_target
+  | Free of int
+  | Bound
+  | Dummy_node
 type edge_kind =
   | Link
   | Relation of (node_kind * node_kind * head_type * (float option))
@@ -356,6 +371,7 @@ let string_of_node_kind x =
   | State _ -> "State"
   | CounterGuard _ -> "Guard"
   | CounterDelta _ -> "Delta"
+  | CounterId _ -> "Id"
   | Rule_source -> "RuleS"
   | Rule_target -> "RuleT"
   | Dummy_node -> "Dummy_node"
@@ -979,7 +995,15 @@ let add_son_counter scale father item son_string son_type kind error1 error2 err
     let _ = Printf.fprintf stderr "ERROR: in %s, dandling pointer\n" error1
     in dummy_id,remanent
   | Some father_item ->
-    let item = parse_attributes p error3 attributes {item with tags = father_item.tags ; orientation = match kind with CounterDelta _ | CounterGuard _ | State _ -> father_item.orientation | _ -> item.orientation  } in
+    let item = parse_attributes p error3 attributes
+        {item with
+         tags = father_item.tags ;
+         orientation =
+           match kind with
+           | CounterId _
+           | CounterDelta _
+           | CounterGuard _
+           | State _ -> father_item.orientation | _ -> item.orientation  } in
     let site_center =
       (match father_item.shape
        with
@@ -1016,6 +1040,17 @@ let add_counter_guard scale site_type guards ?directives:(attributes=[])  remane
 
 let add_counter_delta scale site_type delta ?directives:(attributes=[])  remanent =
   add_son_counter scale site_type (dummy_delta_item remanent.config) delta (-1) (CounterDelta site_type) "add_counter_delta" "a counter transfer function" "site" attributes p_state remanent
+
+  let add_counter_id scale site_type id ?directives:(attributes=[])  remanent =
+    add_son_counter
+      scale
+      site_type
+      (dummy_guard_item remanent.config)
+      id
+      (-1)
+      (CounterId site_type)
+      "add_counter_guard" "a guard" "site"
+      attributes p_state remanent
 
 let op edge =
   {edge
