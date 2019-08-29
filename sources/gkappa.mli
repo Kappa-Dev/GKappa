@@ -224,6 +224,9 @@ val compose_lift: lift -> lift -> lift
 val lift_agent: lift -> agent -> agent
 val lift_site: lift -> site -> site
 val lift_state: lift -> state -> state
+
+val filter: remanent_state -> (tag*int) list -> remanent_state
+
 val dump: string -> ?flags:(tag*int) list -> remanent_state -> unit
 val rotate: point -> angle ->remanent_state ->remanent_state
 val translate_graph: point -> remanent_state -> remanent_state

@@ -1305,6 +1305,40 @@ let dump_node chan filter remanent node_id node =
     let _ = Printf.fprintf chan "]\n\n" in
     ()
 
+let filter_nodes filter map  =
+  IdMap.filter
+    (fun _ node ->
+       filter_tags filter node.tags)
+    map
+
+let filter_edges filter remanent map =
+  let map =
+    Id2Map.filter
+      (fun (id1,id2) _ ->
+         match
+           IdMap.find_option id1 remanent.items,
+           IdMap.find_option id2 remanent.items
+         with
+         | None,_ | _,None ->
+           let () =
+             Printf.fprintf stderr "ERROR: in dump_edge_list, dandling pointers\n" in false
+         | Some node1,Some node2 ->
+           filter_tags filter node1.tags &&
+           filter_tags filter node2.tags)
+      map
+      in
+  Id2Map.map
+    (fun  node ->
+       List.filter
+         (fun node ->
+            filter_tags filter node.tags) node
+    )
+    map
+
+
+
+
+
 let dump_edge_list chan filter remanent (n1,n2) l =
   match
     IdMap.find_option n1 remanent.items,
@@ -1407,6 +1441,14 @@ let dump file ?flags:(filter=[]) remanent =
   let _ = close_out chan in
   ()
 
+let filter remanent filter =
+  {remanent with
+   items =
+     filter_nodes
+       filter
+       remanent.items ;
+   edges = filter_edges filter remanent remanent.edges
+  }
 
 
 let new_internal_state_type agent_type site_type state ?directives:(d=[]) (state_list,remanent) =
