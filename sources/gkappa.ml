@@ -948,13 +948,14 @@ let add_empty_graph abs ord remanent =
                fontsize = remanent.config.dummy_font } in
   add_node (fun _ x -> x) item remanent
 
-let add_empty_node abs ord remanent =
+let add_empty_node ?directives:(attributes=[]) abs ord remanent =
   let item = {(dummy_txt_item remanent.config)
               with
                coordinate = {abscisse = abs ; ordinate=ord} ;
                label = "" ;
                fontsize = remanent.config.dummy_font } in
-  add_node (fun _ x -> x) item remanent
+  let item = parse_attributes p_agent "agent" attributes item in
+  add_node  (fun _ x -> x) item remanent
 
 let add_son father son_type kind error1 error2 error3 attributes p remanent =
   match

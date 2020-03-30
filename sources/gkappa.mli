@@ -266,4 +266,4 @@ val insert_text_on_boarder: (string * angle) list  -> ?padding:float -> ?inside:
 val color:string -> ?flags:((tag*int) list) -> remanent_state -> remanent_state
 
 val add_empty_graph: float -> float -> remanent_state -> agent * remanent_state
-val add_empty_node: float -> float -> remanent_state -> agent * remanent_state
+val add_empty_node: ?directives:directive list -> float -> float -> remanent_state -> agent * remanent_state
