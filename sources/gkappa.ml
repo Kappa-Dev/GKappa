@@ -119,8 +119,12 @@ type directive =
   | Shape of string
   | Set_scale of float
   | Scale of float
+  | Set_shift of float
+  | Shift of float
   | Color of string
+  | Style of string
   | FillColor of string
+  | Thickness of int
   | Comment of string
 
 type head_type = Normal | Vee
@@ -207,6 +211,8 @@ type config =
     pairing_width: int;
     projection_width: int;
     cross_width: int;
+    circle_thickness: int;
+    circle_color: string;
     rule_name_font: int;
     txt_font: int;
     binding_type_font: int;
@@ -407,6 +413,7 @@ type 'a item =
     tags: intset TagMap.t ;
     width: float ;
     height: float ;
+    thickness: int;
     fontsize: int ;
     shape: string ;
     fillcolor:string ;
@@ -415,6 +422,7 @@ type 'a item =
     coordinate: point;
     orientation: angle;
     scale_factor: float;
+    shift_factor: float;
     corner1:string option;
     corner2:string option;
     canbefused:bool;
@@ -447,6 +455,7 @@ let dummy_item =
     n_sibblings=0;
     width = 0.;
     height = 0.;
+    thickness = 1;
     fontsize = 0;
     fillcolor = "white";
     fontcolor = "black" ;
@@ -454,6 +463,7 @@ let dummy_item =
     coordinate = origin;
     shape = "ellipse";
     scale_factor=1.;
+    shift_factor=1.;
     h_type= Normal ;
     t_type = Normal ;
     h_scale = 1. ;
@@ -565,9 +575,11 @@ let update_head ?directives config =
            }
          | Scale f ->
            {config with head_scale = f*.config.head_scale}
+         | Set_shift _ | Shift _ -> config
+
          | Shape x ->
            begin
-             match String.lowercase x
+             match String.lowercase_ascii x
            with
              "normal" ->
              { config with head_type = Normal}
@@ -739,6 +751,7 @@ let print_warn_attribute log t s =
       | Direction _ -> "Direction"
       | Shape _ -> "Shape"
       | Radius _ -> "Radius"
+      | Shift _ | Set_shift _ -> "Shift"
       | Scale _ | Set_scale _ -> "Scale"
       | FontColor _ -> "FontColor")
     s
@@ -759,6 +772,7 @@ let rec parse_attributes p s att item =
           match t with
           | Comment s -> {item with comment = escaped s None }
           | FillColor s -> {item with fillcolor = s}
+          | Style style -> {item with style }
           | Color s -> {item with color = s}
           | Fontsize i -> {item with fontsize = i}
           | FontColor s -> {item with fontcolor = s}
@@ -768,8 +782,11 @@ let rec parse_attributes p s att item =
           | Direction f -> {item with orientation = f}
           | Shape s -> {item with shape = s}
           | Radius f -> parse_attributes p s [Width f;Height f] item
+          | Shift f -> {item with shift_factor = f *. item.shift_factor}
+          | Set_shift f -> {item with shift_factor = f}
           | Scale f -> {item with scale_factor = f *. item.scale_factor}
           | Set_scale f -> {item with scale_factor = f}
+          | Thickness thickness -> {item with thickness }
         end
     in parse_attributes p s q item
 
@@ -785,38 +802,38 @@ let add_sig f item remanent =
 
 let p_txt x =
   match x with
-  | Comment _ | Tag _ | Direction _  | Set_scale _ | Scale _ | Radius _ -> false
+  | Comment _ | Tag _ | Direction _  | Set_scale _ | Scale _ | Shift _ | Set_shift _ | Radius _ -> false
   | Shape _ | FontColor _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
 
 let p_agent_type x =
   match x with
   | Comment _ | Tag _ | Direction _ ->  false
-  | Set_scale _ | Scale _ | Radius _ | Shape _ | FontColor _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
+  | Shift _ | Set_shift _ | Set_scale _ | Scale _ | Radius _ | Shape _ | FontColor _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
 
 
 let p_site_type x =
   match x with
   | Comment _ | Tag _ -> false
-  | Set_scale _ | FontColor _ | Scale _ | Radius _ | Shape _ | Direction _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
+  | Shift _ | Set_shift _  | Set_scale _ | FontColor _ | Scale _ | Radius _ | Shape _ | Direction _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
 
 let p_state_type = p_site_type
 
 let p_agent x =
   match x with
   | Comment _ | Direction _ ->  false
-  | Tag _ | Scale _ | Set_scale _ | Radius _ | Shape _ | FontColor _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
+  | Shift _ | Set_shift _  | Tag _ | Scale _ | Set_scale _ | Radius _ | Shape _ | FontColor _ | FillColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
 
 let p_free x =
   match x with
   | Comment _ | Shape _ |  Fontsize _  ->  false
-  | Direction _ | Scale _ | Set_scale _ | Radius _  | Width _ | Height _ | FontColor _ | Color _ | FillColor _ | Tag _  -> true
+  | Shift _ | Set_shift _  | Direction _ | Scale _ | Set_scale _ | Radius _  | Width _ | Height _ | FontColor _ | Color _ | FillColor _ | Tag _  -> true
 
 let p_bound = p_free
 
 let p_site  x =
   match x with
   | Comment _ -> false
-  | Tag _ | Set_scale _ | Scale _ | Radius _ | Shape _ | Direction _ | FillColor _ | FontColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
+  | Shift _ | Set_shift _  | Tag _ | Set_scale _ | Scale _ | Radius _ | Shape _ | Direction _ | FillColor _ | FontColor _ | Color _ | Fontsize _  | Width _ | Height _ -> true
 
 let p_state = p_site
 
@@ -980,7 +997,8 @@ let add_son father son_type kind error1 error2 error3 attributes p remanent =
         (father_item.width *. father_item.scale_factor)
         (father_item.height *. father_item.scale_factor)
         item.orientation
-        item.scale_factor
+        (item.scale_factor *. item.shift_factor)
+
     in
     let item = {item with father = Some father ; kind = kind ; label = item.label ; coordinate = site_center ; sibblings = IdMap.empty } in
     let s_id,remanent = add_node (fun _ x -> x) item remanent in
@@ -1015,7 +1033,7 @@ let add_son_counter scale father item son_string son_type kind error1 error2 err
         (father_item.width *. father_item.scale_factor *.scale)
         (father_item.height *. father_item.scale_factor*.scale)
         item.orientation
-        item.scale_factor
+        (item.scale_factor *. item.shift_factor)
     in
     let item = {item with father = Some father ; kind = kind ; label = son_string ; coordinate = site_center ; sibblings = IdMap.empty } in
     let s_id,remanent = add_node (fun _ x -> x) item remanent in
@@ -1270,6 +1288,7 @@ let dump_edge log (s1,s2) edge remanent =
     match dir_of_edge edge,edge.t_type with
     | ("none" | "both" | "back") ,_ | _,Normal -> ""
     | "forward",Vee -> ",arrowtail=\"vee\""
+    | _, Vee -> ""
   in
   Printf.fprintf log
     "%s%s -> %s%s [dir = \"%s\",color=\"%s\",penwidth=%s,fontcolor=\"%s\",label=\"%s\",style=\"%s\"%s%s%s];\n"
@@ -1286,7 +1305,7 @@ let dump_edge log (s1,s2) edge remanent =
 
 let dump_node log filter filter_label filter_color node remanent =
   Printf.fprintf log
-    "fixedsize=true,\nlabel = \"%s\",\nfontsize=%i,\npos=\"%f,%f!\",\nwidth=%f,\nheight=%f,\nshape=\"%s\",\nstyle=\"%s\",\nfillcolor=%s,\ncolor=%s,\nfontcolor=%s" (filter_label node.label) node.fontsize node.coordinate.abscisse node.coordinate.ordinate (node.width*.node.scale_factor)  (node.height*.node.scale_factor)  node.shape node.style (filter_color node.fillcolor)  node.color node.fontcolor
+    "fixedsize=true,\nlabel = \"%s\",\nfontsize=%i,\npos=\"%f,%f!\",\nwidth=%f,\nheight=%f,\nshape=\"%s\",\nstyle=\"%s\",\nfillcolor=%s,\ncolor=%s,\nfontcolor=%s\npenwidth=%i" (filter_label node.label) node.fontsize node.coordinate.abscisse node.coordinate.ordinate (node.width*.node.scale_factor)  (node.height*.node.scale_factor)  node.shape node.style (filter_color node.fillcolor)  node.color node.fontcolor node.thickness
 
 let dump_node chan filter remanent node_id node =
   let tags = node.tags in
@@ -1706,8 +1725,7 @@ let rotate point angle remanent =
        let deltay = node.coordinate.ordinate -. point.ordinate in
        {node with
         coordinate =
-          {node.coordinate
-           with
+          {
             abscisse = point.abscisse +. sin*.deltay +. cos*.deltax ;
             ordinate = point.ordinate +. cos*.deltay +. sin*.deltax ;
           };
@@ -1719,10 +1737,10 @@ let rotate point angle remanent =
        let deltay = node.coordinate.ordinate -. point.ordinate in
        {node with
         coordinate =
-          {node.coordinate
-           with
+          {
             abscisse = point.abscisse +. sin*.deltay +. cos*.deltax ;
-            ordinate = point.ordinate +. cos*.deltay +. sin*.deltax ;};
+            ordinate = point.ordinate +. cos*.deltay +. sin*.deltax ;
+          };
         width = swap node.width node.height ;
         height = swap node.height node.width;
         orientation = of_degree ((to_degree angle) +. (to_degree node.orientation))})
@@ -2094,6 +2112,37 @@ let cross remanent =
   | None -> remanent
   | Some (x,x',y,y') ->
     put_a_cross x y x' y' remanent
+
+let draw_circle ~center ~radius ?color ?thickness remanent =
+  let color =
+    match color with
+    | Some c -> c
+    | None -> remanent.config.circle_color
+  in
+  let thickness =
+    match thickness with
+    | Some t -> t
+    |None -> remanent.config.circle_thickness
+  in
+  let shape = "circle" in
+  let directives = [Style "solid"; Color color ; Shape shape; Width radius ; Height radius ; Thickness thickness] in
+  let f id item = item in
+  let item = parse_attributes (fun _ -> true) "" directives { dummy_item with coordinate = {abscisse = center.abscisse ; ordinate = center.ordinate}} in
+  snd (add_node f item  remanent)
+
+let draw_circle_around_site site ~radius ?color ?thickness remanent =
+  match
+    IdMap.find_option site remanent.items
+  with
+  | None   ->
+    let _ = Printf.fprintf stderr "ERROR: try to add a circle around an unknown site\n" in
+     remanent
+  | Some father_item->
+    let center =
+        father_item.coordinate
+      in
+  draw_circle ~center ~radius ?color ?thickness remanent
+
 
 let tag_all_nodes t i remanent =
   map_node

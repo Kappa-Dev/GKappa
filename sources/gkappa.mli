@@ -85,6 +85,8 @@ type config =
     pairing_width: int;
     projection_width: int;
     cross_width: int;
+    circle_thickness: int;
+    circle_color: string;
     rule_name_font: int;
     txt_font: int;
     binding_type_font: int;
@@ -134,8 +136,12 @@ type directive =
   | Shape of string
   | Set_scale of float
   | Scale of float
+  | Set_shift of float
+  | Shift of float 
   | Color of string
+  | Style of string
   | FillColor of string
+  | Thickness of int
   | Comment of string
 
 
@@ -267,3 +273,6 @@ val color:string -> ?flags:((tag*int) list) -> remanent_state -> remanent_state
 
 val add_empty_graph: float -> float -> remanent_state -> agent * remanent_state
 val add_empty_node: ?directives:directive list -> float -> float -> remanent_state -> agent * remanent_state
+
+val draw_circle: center:point -> radius:float ->  ?color:string -> ?thickness:int -> remanent_state -> remanent_state
+val draw_circle_around_site: site -> radius:float ->  ?color:string -> ?thickness:int -> remanent_state -> remanent_state
