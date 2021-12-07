@@ -1122,7 +1122,10 @@ let rec add_link edge n1 n2 remanent =
 
 
 let add_relation relation = add_link relation
-let add_match_elt config = add_link (pairing config)
+let add_match_elt ?color ?style config = add_link (let c = pairing config in
+                                       match color with | None ->  c
+                                                        | Some color ->
+                                                          {c with color})
 let add_proj_elt ?name:(name=None) ?ca:(ca=None) ?cb:(cb=None) ?donotfuse:(donotfuse=false) config = add_link (projection ~name:name ~ca:ca ~cb:cb ~donotfuse:donotfuse config)
 let add_edge x y z = add_relation (link z.config) x y z
 let add_oriented_edge x y z = add_relation (oriented_link z.config) x y z
@@ -1921,7 +1924,7 @@ let add_match ?color:(color="") ?style:(style="") l remanent =
     else {config with pairing_style = style }
   in
   List.fold_left
-    (fun remanent (x,y) -> add_match_elt remanent.config x y remanent) remanent l
+    (fun remanent (x,y) -> add_match_elt ~color ~style remanent.config x y remanent) remanent l
 
 
 let add_proj ?color:(color="") ?style:(style="") ?name:(name=None)   ?ca:(ca=None) ?cb:(cb=None) ?donotfuse:(donotfuse=false) l remanent =
