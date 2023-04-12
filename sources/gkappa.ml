@@ -2127,8 +2127,21 @@ let draw_circle ~center ~radius ?color ?thickness remanent =
   let shape = "circle" in
   let directives = [Style "solid"; Color color ; Shape shape; Width radius ; Height radius ; Thickness thickness] in
   let f id item = item in
-  let item = parse_attributes (fun _ -> true) "" directives { dummy_item with coordinate = {abscisse = center.abscisse ; ordinate = center.ordinate}} in
+  let item = parse_attributes (fun _ -> true) "" directives { dummy_item with coordinate = center } in
   snd (add_node f item  remanent)
+
+let barycenter l =
+  let d,a,o =
+    List.fold_left
+      (fun (d,a,o) (i,point)->
+            let i' = float_of_int i in
+            d+i,a+.i'*.point.abscisse,o+.i'*.point.ordinate)
+      (0,0.,0.)
+      l
+  in
+  let d = float_of_int d in
+  let c  = {abscisse = a/.d ; ordinate = o/.d} in
+  c
 
 let draw_circle_around_site site ~radius ?color ?thickness remanent =
   match
@@ -2143,6 +2156,22 @@ let draw_circle_around_site site ~radius ?color ?thickness remanent =
       in
   draw_circle ~center ~radius ?color ?thickness remanent
 
+
+let draw_circle_around_barycenter_of_sites list ~radius ?color ?thickness remanent =
+          let list =
+              List.fold_left
+                  (fun l (a,site)  ->
+                    match
+                      IdMap.find_option site remanent.items
+                    with
+                  | None   ->
+                    let _ = Printf.fprintf stderr "ERROR: try to add a circle around an unknown site\n" in
+                    l
+                  | Some father_item->
+                    (a,father_item.coordinate)::l) [] list
+            in
+            let center = barycenter list in
+            draw_circle ~center ~radius ?color ?thickness remanent
 
 let tag_all_nodes t i remanent =
   map_node

@@ -137,7 +137,7 @@ type directive =
   | Set_scale of float
   | Scale of float
   | Set_shift of float
-  | Shift of float 
+  | Shift of float
   | Color of string
   | Style of string
   | FillColor of string
@@ -276,3 +276,4 @@ val add_empty_node: ?directives:directive list -> float -> float -> remanent_sta
 
 val draw_circle: center:point -> radius:float ->  ?color:string -> ?thickness:int -> remanent_state -> remanent_state
 val draw_circle_around_site: site -> radius:float ->  ?color:string -> ?thickness:int -> remanent_state -> remanent_state
+val draw_circle_around_barycenter_of_sites: (int * site) list -> radius:float ->  ?color:string -> ?thickness:int -> remanent_state -> remanent_state
