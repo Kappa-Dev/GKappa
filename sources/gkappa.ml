@@ -2133,6 +2133,23 @@ let draw_circle ~center ~radius ?color ?thickness remanent =
   let item = parse_attributes (fun _ -> true) "" directives { dummy_item with coordinate = center } in
   snd (add_node f item  remanent)
 
+let draw_ellipse ~center ~width ~height ?color ?thickness remanent =
+    let color =
+      match color with
+      | Some c -> c
+      | None -> remanent.config.circle_color
+    in
+    let thickness =
+      match thickness with
+      | Some t -> t
+      |None -> remanent.config.circle_thickness
+    in
+    let shape = "ellipse" in
+    let directives = [Style "solid"; Color color ; Shape shape; Width width ; Height height ; Thickness thickness] in
+    let f id item = item in
+    let item = parse_attributes (fun _ -> true) "" directives { dummy_item with coordinate = center } in
+    snd (add_node f item  remanent)
+
 let barycenter l =
   let d,a,o =
     List.fold_left
@@ -2175,6 +2192,38 @@ let draw_circle_around_barycenter_of_sites list ~radius ?color ?thickness remane
             in
             let center = barycenter list in
             draw_circle ~center ~radius ?color ?thickness remanent
+
+
+let draw_ellipse_around_site site ~width ~height ?color ?thickness remanent =
+              match
+                IdMap.find_option site remanent.items
+              with
+              | None   ->
+                let _ = Printf.fprintf stderr "ERROR: try to add a circle around an unknown site\n" in
+                 remanent
+              | Some father_item->
+                let center =
+                    father_item.coordinate
+                  in
+              draw_ellipse ~center ~width ~height ?color ?thickness remanent
+
+
+            let draw_ellipse_around_barycenter_of_sites list ~width ~height ?color ?thickness remanent =
+                      let list =
+                          List.fold_left
+                              (fun l (a,site)  ->
+                                match
+                                  IdMap.find_option site remanent.items
+                                with
+                              | None   ->
+                                let _ = Printf.fprintf stderr "ERROR: try to add a circle around an unknown site\n" in
+                                l
+                              | Some father_item->
+                                (a,father_item.coordinate)::l) [] list
+                        in
+                        let center = barycenter list in
+                        draw_ellipse ~center ~width ~height ?color ?thickness remanent
+
 
 let tag_all_nodes t i remanent =
   map_node
@@ -2671,7 +2720,7 @@ let set_ru init mode =
                   | Middle -> {init.config with rule_corners = middle_ru}
                   | Corners -> {init.config with rule_corners = corners_ru}}
 
-let add_fictitious_link l remanent =
+let add_fictitious_link l ?directives remanent =
   let remanent,l = List.fold_left (fun (x,l) (y,z) ->
       let n,x = add_empty_node y z x in
       x,n::l)
@@ -2679,7 +2728,21 @@ let add_fictitious_link l remanent =
   in
   let rec aux l remanent =
     match l with
-    | t::t'::q -> aux (t'::q) (add_edge t t' remanent)
+    | t::t'::q -> aux (t'::q) (add_site_relation ?directives t t' remanent)
     |  _ -> remanent
   in
   aux l remanent
+
+  let add_fictitious_edge l ?directives remanent =
+    let remanent,l = List.fold_left (fun (x,l) (y,z) ->
+        let n,x = add_empty_node y z x in
+        x,n::l)
+        (remanent,[]) l
+    in
+    let rec aux l remanent =
+      match l with
+        [t;t'] -> add_flow t t' remanent
+      | t::t'::q -> aux (t'::q) (add_site_relation ?directives t t' remanent)
+      |  _ -> remanent
+    in
+    aux l remanent

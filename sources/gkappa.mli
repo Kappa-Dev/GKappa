@@ -203,7 +203,8 @@ val add_binding_type: site -> site_type -> ?directives:directive list -> remanen
 val add_free_list: (site * directive list) list -> remanent_state -> state list * remanent_state
 val add_link_list: (site*site) list -> remanent_state -> remanent_state
 val add_oriented_link_list: (site*site) list -> remanent_state -> remanent_state
-val add_fictitious_link: (float*float) list -> remanent_state -> remanent_state
+val add_fictitious_link: (float*float) list -> ?directives:directive list -> remanent_state -> remanent_state
+val add_fictitious_edge: (float*float) list -> ?directives:directive list -> remanent_state -> remanent_state
 
 val set_co: remanent_state  -> co_mode -> remanent_state
 val set_ru: remanent_state -> co_mode -> remanent_state
@@ -276,4 +277,6 @@ val add_empty_node: ?directives:directive list -> float -> float -> remanent_sta
 
 val draw_circle: center:point -> radius:float ->  ?color:string -> ?thickness:int -> remanent_state -> remanent_state
 val draw_circle_around_site: site -> radius:float ->  ?color:string -> ?thickness:int -> remanent_state -> remanent_state
-val draw_circle_around_barycenter_of_sites: (int * site) list -> radius:float ->  ?color:string -> ?thickness:int -> remanent_state -> remanent_state
+val draw_circle_around_barycenter_of_sites: (int * site) list -> radius:float -> ?color:string -> ?thickness:int -> remanent_state -> remanent_state
+val draw_ellipse_around_site: site -> width:float ->  height:float  ->  ?color:string -> ?thickness:int -> remanent_state -> remanent_state
+val draw_ellipse_around_barycenter_of_sites: (int * site) list -> width:float ->  height:float ->  ?color:string -> ?thickness:int -> remanent_state -> remanent_state
