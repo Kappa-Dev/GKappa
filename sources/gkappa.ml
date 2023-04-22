@@ -640,7 +640,11 @@ let relation ?directives config =
        if List.exists (fun x -> match x with Style _ -> true | _ -> false) (match directives with Some l -> l | None -> [])
        then x.style
        else config.weak_flow_style ;
-      width = (float_of_int config.weak_flow_width);
+      width =
+      if List.exists (fun x -> match x with Width _ -> true | _ -> false) (match directives with Some l -> l | None -> [])
+      then x.width
+      else 
+(float_of_int config.weak_flow_width);
       tags = TagMap.empty}
 
 let strong_flow ?directives config =
