@@ -201,7 +201,7 @@ val add_bound: site -> ?directives:directive list -> remanent_state -> state * r
 val add_binding_type: site -> site_type -> ?directives:directive list -> remanent_state -> state * remanent_state
 
 val add_free_list: (site * directive list) list -> remanent_state -> state list * remanent_state
-val add_link_list: (site*site) list -> remanent_state -> remanent_state
+val add_link_list: (site*site) list -> ?directives:directive list -> remanent_state -> remanent_state
 val add_oriented_link_list: (site*site) list -> remanent_state -> remanent_state
 val add_fictitious_link: (float*float) list -> ?directives:directive list -> remanent_state -> remanent_state
 val add_fictitious_edge: (float*float) list -> ?directives:directive list -> remanent_state -> remanent_state

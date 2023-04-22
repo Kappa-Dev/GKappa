@@ -587,6 +587,8 @@ let update_head ?directives config =
              {config with head_type = Vee}
            | _ -> config
            end
+         | Style style ->
+            {config with pairing_style = style}
          | _ -> config
       )
       config l
@@ -629,11 +631,15 @@ let flow ?directives config =
 
 let relation ?directives config =
   let config = update_head ?directives config in
-  {  (update_comment ?directives (pairing config))
+  let x = (update_comment ?directives (pairing config)) in
+  {  x
      with
       priority = 3;
       color = config.weak_flow_color;
-      style = config.weak_flow_style ;
+      style =
+       if List.exists (fun x -> match x with Style _ -> true | _ -> false) (match directives with Some l -> l | None -> [])
+       then x.style
+       else config.weak_flow_style ;
       width = (float_of_int config.weak_flow_width);
       tags = TagMap.empty}
 
@@ -1103,10 +1109,19 @@ let merge_type a b =
 let fusion_edge s1 s2 =
   {s2 with forward = s1.forward || s2.forward ; backward = s1.backward || s2.backward ; h_type = merge_type s1.h_type s2.h_type ; t_type = merge_type s1.t_type s2.t_type}
 
-let rec add_link edge n1 n2 remanent =
+let rec add_link ?directives edge n1 n2 remanent =
+  let edge =
+  List.fold_left
+  (fun config a ->
+     match a with
+     | Color s ->
+       { config with color = s}
+      | _ -> config) edge
+      (match directives with None -> [] | Some l -> l)
+  in
   if compare n1 n2 < 0
   then
-    add_link (op edge) n2 n1 remanent
+    add_link ?directives (op edge) n2 n1 remanent
   else
     {remanent
      with
@@ -1121,13 +1136,13 @@ let rec add_link edge n1 n2 remanent =
         Id2Map.add (n1,n2) (edge::old) remanent.edges}
 
 
-let add_relation relation = add_link relation
+let add_relation ?directives relation = add_link ?directives relation
 let add_match_elt ?color ?style config = add_link (let c = pairing config in
                                        match color with | None ->  c
                                                         | Some color ->
                                                           {c with color})
 let add_proj_elt ?name:(name=None) ?ca:(ca=None) ?cb:(cb=None) ?donotfuse:(donotfuse=false) config = add_link (projection ~name:name ~ca:ca ~cb:cb ~donotfuse:donotfuse config)
-let add_edge x y z = add_relation (link z.config) x y z
+let add_edge ?directives x y z = add_relation ?directives (link z.config) x y z
 let add_oriented_edge x y z = add_relation (oriented_link z.config) x y z
 let add_weak_flow_and_link ?directives x y z = add_relation (weak_flow ?directives z.config) x y (add_edge  x y z)
 let add_flow_and_link ?directives x y z = add_relation (flow ?directives z.config) x y (add_weak_flow_and_link ?directives x y z)
@@ -1561,8 +1576,8 @@ let add_weak_flow_list ?directives =
 let add_strong_flow_and_link_list ?directives =
   edge_list
     (add_strong_flow ?directives)
-let add_link_list  =
-  edge_list add_edge
+let add_link_list a ?directives =
+  edge_list (add_edge ?directives) a
   let add_oriented_link_list  =
     edge_list add_oriented_edge
 let add_weak_flow_list ?directives =
