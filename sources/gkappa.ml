@@ -643,7 +643,7 @@ let relation ?directives config =
       width =
       if List.exists (fun x -> match x with Width _ -> true | _ -> false) (match directives with Some l -> l | None -> [])
       then x.width
-      else 
+      else
 (float_of_int config.weak_flow_width);
       tags = TagMap.empty}
 
@@ -2663,11 +2663,11 @@ let proj_flow_on_a_species ?file:(s="") ?padding:(padding=1.) ?angle:(angle = e)
     match s with
     | "" -> ()
     | _  ->
-      let _ = dump (s^"0.dot") ~flags:["rule_flow",0;"sp_flow",0] rule_species in
-      let _ = dump (s^"1.dot") ~flags:["rule_flow",1;"sp_flow",0] rule_species in
-      let _ = dump (s^"2.dot") ~flags:["rule_flow",1;"sp_flow",0] rule_species_with_proj in
-      let _ = dump (s^"3.dot") ~flags:["rule_flow",1;"sp_flow",1] rule_species_with_proj in
-      let _ = dump (s^"4.dot") ~flags:["rule_flow",1;"sp_flow",1] rule_species in
+      let _ = dump (s^"0.ladot") ~flags:["rule_flow",0;"sp_flow",0] rule_species in
+      let _ = dump (s^"1.ladot") ~flags:["rule_flow",1;"sp_flow",0] rule_species in
+      let _ = dump (s^"2.ladot") ~flags:["rule_flow",1;"sp_flow",0] rule_species_with_proj in
+      let _ = dump (s^"3.ladot") ~flags:["rule_flow",1;"sp_flow",1] rule_species_with_proj in
+      let _ = dump (s^"4.ladot") ~flags:["rule_flow",1;"sp_flow",1] rule_species in
       ()
   in sigma_rule,sigma_sp,rule_species,rule_species_with_proj
 
